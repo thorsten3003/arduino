@@ -1,0 +1,12 @@
+{
+    "arduino_folder": "/Applications/Arduino.app", 
+    "baudrate": 4, 
+    "board": 3, 
+    "full_compilation": true, 
+    "platform": 1, 
+    "platform_name": "Arduino AVR Boards", 
+    "programmer": {
+        "1": 0
+    }, 
+    "serial_port": 0
+}
