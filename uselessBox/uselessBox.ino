@@ -5,7 +5,7 @@ unsigned long ServoArmprev; //Zeitspeicher für Servo
 Servo ServoDeckel;
 Servo ServoArm;
 int ServoArmpos = 0;
-int ServoDeckelpos = 0;
+int ServoDeckelpos = 0; // min. 0, max. 60, Platz für Arm: 40, Ultraschall: 50
 int ServoArmIntervall;
 int LEDgruen = 7;
 int LEDIntervall = 1000; //1 Sekunde
@@ -44,7 +44,7 @@ void loop() {
     DoLED();  // LED blinken
     if (zufall == 0) // Beim ersten Durchlauf...
       {
-        zufall = random(1, 5); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
+        zufall = random(1, 6); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
         ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
         ServoArmIntervall =1000 * random(1,5);  //Auf jeden Fall ein paar Sekunden warten
        }
@@ -53,12 +53,12 @@ void loop() {
       case 1: // nach ServoArmIntervall Zeit, Deckel heben und ausschalten
         if((millis() - ServoArmprev) > ServoArmIntervall)
         {
-          ServoDeckel.write(65);
-          delay(1000); 
+          ServoDeckel.write(40);
+          delay(400); 
           ServoArm.write(180);  // Schalter ausschalten
           delay(400);  
           ServoArm.write(0);  // Arm wieder zurück ins Körbchen
-          delay(1000);  
+          delay(600);  
           ServoDeckel.write(0);
           ServoArmprev = millis();
         }
@@ -77,45 +77,74 @@ void loop() {
         {
           for (int i = 0; i <= random(3, 6); i++)
           { 
-            int winkel = random(45, 65);
+            int winkel = random(25, 50);
             ServoDeckel.write(winkel);
             delay(300); 
-            ServoDeckel.write(25);
-            delay(300);
-          }  
             ServoDeckel.write(0);
-            delay(500); 
-          
+            delay(300);
+            DoLED();  // LED blinken
+          }  
           zufall = 1; // beim nächsten Durchlauf ausmachen
         }  
         break;
-      case 4: // langsam Deckel auf ,  langsam auschalten, langsam Deckel zu
+      case 4: // langsam Deckel auf ,  langsam schnell auschalten, langsam Deckel zu
         if((millis() - ServoArmprev) > ServoArmIntervall)
         {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 75; ServoDeckelpos++) {
+          for (ServoDeckelpos = 0; ServoDeckelpos < 45; ServoDeckelpos++) {
             ServoDeckel.write(ServoDeckelpos);
             delay(15);
+            DoLED();  // LED blinken
           }
-          for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
+          for (ServoArmpos = 0; ServoArmpos < 120; ServoArmpos++) {
             ServoArm.write(ServoArmpos);
             delay(15);
-          }
+            }
+            DoLED();  // LED blinken
+            delay(500);
+            ServoArm.write(180);
+            delay(400);
+            DoLED();  // LED blinken
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
-            delay(15);
-          }
-          for (ServoDeckelpos = 75 ; ServoDeckelpos >  15; ServoDeckelpos--) {
+            delay(5);
+            }
+            DoLED();  // LED blinken
+          for (ServoDeckelpos = 45 ; ServoDeckelpos >  0; ServoDeckelpos--) {
             ServoDeckel.write(ServoDeckelpos);
             delay(15);
           }
+          ServoDeckel.write(0);
         }
         break;
       case 5:
-        // langsam Deckel auf ,  langsam auschalten, langsam Deckel zu
-
+        // langsam Deckel auf ,  langsam Deckel zu, langsam Deckel zu
+       if((millis() - ServoArmprev) > ServoArmIntervall)
+        {        
+          for (ServoDeckelpos = 0; ServoDeckelpos < 45; ServoDeckelpos++) {
+            ServoDeckel.write(ServoDeckelpos);
+            delay(15);
+            DoLED();  // LED blinken
+          }
+          delay(1000);
+          DoLED();  // LED blinken
+          for (ServoDeckelpos = 45 ; ServoDeckelpos >  0; ServoDeckelpos--) {
+            ServoDeckel.write(ServoDeckelpos);
+            delay(15);
+          }
+          ServoDeckel.write(0);
+          delay(100);
+          
+          ServoDeckel.write(20);
+          delay(1000);
+          DoLED();  // LED blinken
+          ServoDeckel.write(0);
+          delay(300);
+         
+         zufall = 1; // beim nächsten Durchlauf ausmachen 
+        }
         break;
       case 6:
-        // langsam Deckel auf ,  schnell auschalten, schnell Deckel zu
+        // ?
 
         break;
       case 7:
