@@ -13,6 +13,14 @@ int LEDStatus = HIGH;
 
 int SchalterPin = 8;
 int SchalterStatus;
+
+#define trigger 9  // Arduino Pin an HC-SR04 Trig
+#define echo 10     // Arduino Pin an HC-SR04 Echo
+long duration=0;
+long distance=0;
+long distance_old=0;
+
+
 int zufall = 0; // was Kiste macht ist rein zufällig
 boolean debug = true;
 
@@ -25,6 +33,9 @@ void setup() {
 
   ServoArm.attach(5);
   ServoDeckel.attach(6);
+
+  pinMode(trigger, OUTPUT);
+  pinMode(echo, INPUT);
 
   // Nach dem Strom anstecken alles auf 0
   digitalWrite(LEDgruen, LEDStatus);  
@@ -44,7 +55,7 @@ void loop() {
     DoLED();  // LED blinken
     if (zufall == 0) // Beim ersten Durchlauf...
       {
-        zufall = random(1, 6); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
+        zufall = random(1, 9); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
         ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
         ServoArmIntervall =1000 * random(1,5);  //Auf jeden Fall ein paar Sekunden warten
        }
@@ -125,55 +136,66 @@ void loop() {
             delay(15);
             DoLED();  // LED blinken
           }
-          delay(1000);
+          delay(500);
           DoLED();  // LED blinken
+          delay(500);
           for (ServoDeckelpos = 45 ; ServoDeckelpos >  0; ServoDeckelpos--) {
             ServoDeckel.write(ServoDeckelpos);
             delay(15);
           }
           ServoDeckel.write(0);
           delay(100);
+          DoLED();  // LED blinken
           
           ServoDeckel.write(20);
-          delay(1000);
+          delay(500);
+          DoLED();  // LED blinken
+          delay(500);
           DoLED();  // LED blinken
           ServoDeckel.write(0);
           delay(300);
-         
+          DoLED();  // LED blinken
+          
          zufall = 1; // beim nächsten Durchlauf ausmachen 
         }
         break;
       case 6:
-        // ?
-
+        // Deckel auf, wenn Ultraschall unter 10 cm dann Deckel zu 
+        if((millis() - ServoArmprev) > ServoArmIntervall)
+        {        
+          for (ServoDeckelpos = 0; ServoDeckelpos < 25; ServoDeckelpos++) {
+            ServoDeckel.write(ServoDeckelpos);
+            delay(20);
+          }
+          ServoDeckel.write(50);
+          DoLED();  // LED blinken
+          delay(200);
+          
+          while (true)
+          {
+            DoLED();  // LED blinken
+            delay(100);
+            doUltraschall();
+           
+            if(distance<=12) 
+              { 
+                ServoDeckel.write(0);
+                ServoArmprev = millis();
+                zufall=0;
+                break;
+              }
+          }
+          
+        }
         break;
       case 7:
-        // Deckel auf, bei Annäherung schnell auschalten, schnell Deckel zu
+        zufall=6;
         break;
-      case 8: // Deckel auf, Ultraschall bei Annäherung Deckel zu, Entfernung merken
-        // 3 Sekunden warten , Spielchen wiederholen
-        // Nach 3 -4 mal Schalter ausmachen
-
+      case 8: 
+        zufall=6;
         break;
-      case 9:  // TESTEN
-        for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
-          ServoArm.write(ServoArmpos);
-          delay(15);
-        }
-        for (ServoArmpos    ; ServoArmpos > 0   ; ServoArmpos--) {
-          ServoArm.write(ServoArmpos);
-          delay(15);
-        }
-
-        for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-          ServoDeckel.write(ServoDeckelpos);
-          delay(15);
-        }
-        for (ServoDeckelpos    ; ServoDeckelpos >  0; ServoDeckelpos--) {
-          ServoDeckel.write(ServoDeckelpos);
-          delay(15);
-        }
-
+      case 9: 
+        //noch nix
         break;
     }
 
@@ -187,11 +209,7 @@ void loop() {
     ServoArm.write(0);  // Arm wieder zurück ins Körbchen
     ServoDeckel.write(0);  // Deckel zu
   }
-
-
-}
-
-
+} //Ende Loop
 
 void DoLED()
 {
@@ -203,4 +221,25 @@ void DoLED()
     LEDStatus = !LEDStatus;  //Toggeln des LED Status
     digitalWrite(LEDgruen, LEDStatus);
   }
+}
+
+void doUltraschall()
+{
+    digitalWrite(trigger, LOW);  
+    delayMicroseconds(2); 
+    
+    digitalWrite(trigger, HIGH);  
+    delayMicroseconds(10);
+    
+    digitalWrite(trigger, LOW);
+    duration = pulseIn(echo, HIGH); // Echo-Zeit messen
+    // Echo-Zeit halbieren (weil hin und zurueck, der doppelte Weg ist)
+    duration = (duration/2); 
+    // Zeit des Schalls durch Luft in Zentimeter umrechnen
+    distance = duration / 29.1;
+    
+    if(debug) {
+      Serial.print(distance);
+      Serial.println(" cm");
+    }
 }
