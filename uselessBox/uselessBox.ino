@@ -55,9 +55,9 @@ void loop() {
     DoLED();  // LED blinken
     if (zufall == 0) // Beim ersten Durchlauf...
       {
-        zufall = random(1, 9); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
+        zufall = random(1, 7); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
         ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
-        ServoArmIntervall =1000 * random(1,5);  //Auf jeden Fall ein paar Sekunden warten
+        ServoArmIntervall =1000 * random(1,2);  //Auf jeden Fall ein paar Sekunden warten
        }
     switch (zufall)
     {
@@ -86,16 +86,16 @@ void loop() {
       case 3: //  mit dem Deckel klappern
         if((millis() - ServoArmprev) > ServoArmIntervall)
         {
-          for (int i = 0; i <= random(3, 6); i++)
+          for (int i = 0; i <= random(1, 2); i++)
           { 
-            int winkel = random(25, 50);
+            int winkel = random(25, 35);
             ServoDeckel.write(winkel);
             delay(300); 
             ServoDeckel.write(0);
             delay(300);
             DoLED();  // LED blinken
           }  
-          zufall = 1; // beim nächsten Durchlauf ausmachen
+          zufall = 2; // beim nächsten Durchlauf ausmachen
         }  
         break;
       case 4: // langsam Deckel auf ,  langsam schnell auschalten, langsam Deckel zu
@@ -156,7 +156,7 @@ void loop() {
           delay(300);
           DoLED();  // LED blinken
           
-         zufall = 1; // beim nächsten Durchlauf ausmachen 
+         zufall = 0; // beim nächsten Durchlauf ausmachen 
         }
         break;
       case 6:
@@ -179,6 +179,7 @@ void loop() {
            
             if(distance<=12) 
               { 
+                ServoArm.write(0);  // Arm wieder zurück ins Körbchen
                 ServoDeckel.write(0);
                 ServoArmprev = millis();
                 zufall=0;
