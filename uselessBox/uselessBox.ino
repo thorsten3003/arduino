@@ -55,7 +55,7 @@ void loop() {
       {
         zufall = random(2, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
         ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
-        ServoArmIntervall =1000 * random(0.5 ,3);  //Auf jeden Fall ein paar Sekunden warten
+        ServoArmIntervall =100 * random(3 ,30);  //Auf jeden Fall ein paar Sekunden warten
        }
     switch (zufall)
     {
@@ -112,8 +112,10 @@ void loop() {
           for (ServoArmpos = 0; ServoArmpos < 120; ServoArmpos++) {
             ServoArm.write(ServoArmpos);
             delay(15);
+              if( doUltraschall() ) { z=1; break; }
             }
-          if( doUltraschall() ) break;
+              if(z==1) break; // den case abbrechen
+              
             delay(500);
           if( doUltraschall() ) break;
             ServoArm.write(180);
@@ -122,8 +124,10 @@ void loop() {
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
             delay(5);
+              if( doUltraschall() ) { z=1; break; }
             }
-          if( doUltraschall() ) break;            
+              if(z==1) break; // den case abbrechen
+                      
           for (ServoDeckelpos = 45 ; ServoDeckelpos >  0; ServoDeckelpos--) {
             ServoDeckel.write(ServoDeckelpos);
             delay(15);
@@ -193,14 +197,19 @@ void loop() {
           for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
             ServoArm.write(ServoArmpos);
             delay(15);
+            if( doUltraschall() ) { z=1; break; }
             }
+              if(z==1) break; // den case abbrechen
+            
             ServoArm.write(180);
             if( doUltraschall() ) break;
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
             delay(15);
+            if( doUltraschall() ) { z=1; break; }
             }
-            if( doUltraschall() ) break;
+              if(z==1) break; // den case abbrechen
+            
           for (ServoDeckelpos = 50 ; ServoDeckelpos >  0; ServoDeckelpos--) {
             ServoDeckel.write(ServoDeckelpos);
             delay(15);
@@ -222,14 +231,16 @@ void loop() {
           for (ServoArmpos = 0; ServoArmpos < 165; ServoArmpos++) {
             ServoArm.write(ServoArmpos);
             delay(15);
+            if( doUltraschall() ) { z=1; break; }
             }
-          if( doUltraschall() ) break;
+              if(z==1) break; // den case abbrechen
+              
             delay(500);
           if( doUltraschall() ) break;
             delay(500);
           if( doUltraschall() ) break;
             ServoArm.write(180);
-            delay(300);
+            delay(400);
             
             for(int i=0; i<10; i++) {
               if( doUltraschall() ) {
@@ -243,7 +254,10 @@ void loop() {
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
             delay(3);
-            }       
+            if( doUltraschall() ) { z=1; break; }
+            }
+              if(z==1) break; // den case abbrechen
+              
           for (ServoDeckelpos = 50 ; ServoDeckelpos >  0; ServoDeckelpos--) {
             ServoDeckel.write(ServoDeckelpos);
             delay(3);
@@ -264,13 +278,19 @@ void loop() {
           for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
             ServoArm.write(ServoArmpos);
             delay(15);
+            if( doUltraschall() ) { z=1; break; }
             }
+              if(z==1) break; // den case abbrechen
+              
             ServoArm.write(180);
-            if( doUltraschall() ) break;
+
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
             delay(15);
+            if( doUltraschall() ) { z=1; break; }
             }
+              if(z==1) break; // den case abbrechen
+              
           ServoDeckel.write(0);
         }
         break;      
@@ -327,7 +347,7 @@ void DoLED()
 
 boolean doUltraschall()
 {
-  if ((millis() - USprev) > 43)
+  if ((millis() - USprev) > 100)
   {
     digitalWrite(trigger, LOW);  
     delayMicroseconds(2); 
