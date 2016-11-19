@@ -53,20 +53,19 @@ void loop() {
     digitalWrite(LEDgruen, LOW);
     if (zufall == 0) // Beim ersten Durchlauf...
       {
-        zufall = random(2, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
+        zufall = random(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
         ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
-        ServoArmIntervall =100 * random(3 ,30);  //Auf jeden Fall ein paar Sekunden warten
+        ServoArmIntervall =100 * random(1 ,30);  //Auf jeden Fall ein paar Sekunden warten
        }
     switch (zufall)
     {
       case 1: // schnell Deckel heben,schnell ausschalten
       if (debug) Serial.println("Case 1");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
+        if((millis() - ServoArmprev) > 200)
         {
           ServoDeckel.write(40);
           delay(400);
-          ServoArm.write(180);  // Schalter ausschalten
-          delay(400);  
+          SchalterAUS();
           ServoArm.write(0);  // Arm wieder zurück ins Körbchen
           delay(600);
           ServoDeckel.write(0);
@@ -75,10 +74,9 @@ void loop() {
         break;
       case 2: // schnell ohne Deckel heben ausschalten
       if (debug) Serial.println("Case 2");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
+        if((millis() - ServoArmprev) > 300)
         {
-          ServoArm.write(180);  // Schalter ausschalten
-          delay(400);  
+          SchalterAUS();
           ServoArm.write(0);  // Arm wieder zurück ins Körbchen
           ServoArmprev = millis();
         }
@@ -118,8 +116,7 @@ void loop() {
               
             delay(500);
           if( doUltraschall() ) break;
-            ServoArm.write(180);
-            delay(400);
+            SchalterAUS();
           if( doUltraschall() ) break;
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
@@ -165,6 +162,8 @@ void loop() {
         }
         break;
       case 6:  // Deckel auf, wenn Ultraschall unter 12 cm dann Deckel zu 
+zufall=0;
+break;
       if (debug) Serial.println("case 6");
         if((millis() - ServoArmprev) > ServoArmIntervall)
         {        
@@ -201,7 +200,7 @@ void loop() {
             }
               if(z==1) break; // den case abbrechen
             
-            ServoArm.write(180);
+            SchalterAUS();
             if( doUltraschall() ) break;
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
@@ -239,8 +238,7 @@ void loop() {
           if( doUltraschall() ) break;
             delay(500);
           if( doUltraschall() ) break;
-            ServoArm.write(180);
-            delay(400);
+            SchalterAUS();
             
             for(int i=0; i<10; i++) {
               if( doUltraschall() ) {
@@ -267,7 +265,7 @@ void loop() {
         break;
       case 9: //langsam auf, US, langsam Arm raus, US , langsam Arm rein, schnell Deckel zu
      if (debug) Serial.println("Case 9"); 
-        if((millis() - ServoArmprev) > ServoArmIntervall)
+        if((millis() - ServoArmprev) > 5000)
         {        
           for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
             ServoDeckel.write(ServoDeckelpos);
@@ -282,7 +280,7 @@ void loop() {
             }
               if(z==1) break; // den case abbrechen
               
-            ServoArm.write(180);
+            SchalterAUS();
 
           for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
             ServoArm.write(ServoArmpos);
@@ -294,9 +292,9 @@ void loop() {
           ServoDeckel.write(0);
         }
         break;      
-      case 10: // schnell ohne Deckel heben ausschalten
+      case 10: // 
       if (debug) Serial.println("Case 10");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
+        if((millis() - ServoArmprev) > 200)
         {
           ServoArm.write(170);  // Schalter ausschalten
           delay(1500); 
@@ -312,7 +310,7 @@ void loop() {
             }
             if(z==1) break; // den case abbrechen
 
-          ServoArm.write(180);  
+          SchalterAUS();  
           delay(800);
           ServoArm.write(0);
           delay(200);
@@ -346,9 +344,11 @@ void DoLED()
 }
 
 boolean doUltraschall()
-{
-  if ((millis() - USprev) > 100)
-  {
+{  
+return(0);  // Ultraschallsensor defekt,  
+  if ((millis() - USprev) > 120)
+  {  Serial.println("Ulstraschall StartMesung  ");
+    duration=0;
     digitalWrite(trigger, LOW);  
     delayMicroseconds(2); 
     digitalWrite(trigger, HIGH);  
@@ -371,10 +371,21 @@ boolean doUltraschall()
         ServoDeckel.write(0);
         ServoArmprev = millis();
         zufall=0;
-        DoLED();  //LED schonmal aus
+        digitalWrite(LEDgruen, HIGH); //LED  aus
         delay(4000);
         return(1);
       }
   }
   return(0);
+}
+
+
+void SchalterAUS()
+{
+  while(!SchalterStatus)
+  {
+    ServoArm.write(180);  // Schalter ausschalten
+    SchalterStatus=digitalRead(SchalterPin);
+  }
+  digitalWrite(LEDgruen, HIGH); //LED  aus
 }
