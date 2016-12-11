@@ -1,7 +1,7 @@
 // UltraschallTest1.ino
 
-#define trigger 6  // Arduino Pin an HC-SR04 Trig
-#define echo 7     // Arduino Pin an HC-SR04 Echo
+#define trigger 9  // Arduino Pin an HC-SR04 Trig
+#define echo 10     // Arduino Pin an HC-SR04 Echo
 
 
 void setup() {

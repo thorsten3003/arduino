@@ -5,7 +5,7 @@ unsigned long USprev; //Zeitspeicher für Ultraschall
 unsigned long ServoArmprev; //Zeitspeicher für Servo
 Servo ServoDeckel;
 Servo ServoArm;
-int ServoArmpos = 0;
+int ServoArmpos = 0;  // min. 0, max. 18
 int ServoDeckelpos = 0; // min. 0, max. 60, Platz für Arm: 40, Ultraschall: 50
 int ServoArmIntervall;
 int LEDgruen = 7;
@@ -15,12 +15,14 @@ int SchalterPin = 8;
 int SchalterStatus;
 #define trigger 9  // Arduino Pin an HC-SR04 Trig
 #define echo 10     // Arduino Pin an HC-SR04 Echo
-long duration=0;
-long distance=0;
-long distance_old=0;
-int z=0;
+long duration = 0;
+long distance = 0;
+long distance_old = 0;
 int zufall = 0; // was Kiste macht ist rein zufällig
+int AusZufall = 1;
 boolean debug = true;
+int Ultraschalldeckel=53; //Deckelstellung ab welcher mit US Messung begonnen wird
+boolean z;  // Abbruchbedingung
 
 void setup() {
   Serial.begin(9600); //For debugging
@@ -34,303 +36,222 @@ void setup() {
   pinMode(echo, INPUT);
 
   // Nach dem Strom anstecken alles auf 0
-  digitalWrite(LEDgruen, LEDStatus);  
+  digitalWrite(LEDgruen, LEDStatus);
   ServoArm.write(0);
   ServoDeckel.write(0);
-  
+
   USprev = millis(); //Zeit merken
   LEDprev = millis(); //Zeit merken
   ServoArmprev = millis(); // Zeit merken
 }
 
 void loop() {
-  //if (debug) Serial.println("Start loop");
-  z=0; // Abbruchbedingungsmerker
-  SchalterStatus=digitalRead(SchalterPin);
-
+  z = false;
+  SchalterStatus = digitalRead(SchalterPin);
   if (SchalterStatus == LOW) //ALSO EINGESCHALTET !!!
   {
-    digitalWrite(LEDgruen, LOW);
+    digitalWrite(LEDgruen, LOW); //LED An
     if (zufall == 0) // Beim ersten Durchlauf...
-      {
-        zufall = random(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger"
-        ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
-        ServoArmIntervall =100 * random(1 ,30);  //Auf jeden Fall ein paar Sekunden warten
-       }
+    {
+      zufall = random(1,12);//(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger" 1, 11
+      ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
+      ServoArmIntervall = 100 * random(1 , 30); //Auf jeden Fall ein paar Sekunden warten
+    }
+
     switch (zufall)
     {
-      case 1: // schnell Deckel heben,schnell ausschalten
-      if (debug) Serial.println("Case 1");
-        if((millis() - ServoArmprev) > 200)
+      case 1:  // Deckel auf, bis Ultraschall unter 12 cm dann Deckel zu
+        if (debug) Serial.println("case 1");
+        BewegeDeckel(55, 25, true); // Stopposition, speed(delay) in ms
+        delay(100);
+        StelleDeckel(53, 20);  //Winkel , Wartezeit in ms
+        while ( ! doUltraschall() )
         {
-          ServoDeckel.write(40);
-          delay(400);
-          SchalterAUS();
-          ServoArm.write(0);  // Arm wieder zurück ins Körbchen
-          delay(600);
-          ServoDeckel.write(0);
-          ServoArmprev = millis();
+          SchalterStatus = digitalRead(SchalterPin);
+          if (SchalterStatus == HIGH) break;
+          
+          if ((millis() - ServoArmprev) > 120000) { break; }
+        }
+        zufall = 0;
+        break;
+      case 2: // schnell Deckel heben,schnell ausschalten
+        if (debug) Serial.println("Case 2");
+        if ((millis() - ServoArmprev) > 200)
+        {
+          StelleDeckel(43, 100); //Winkel , Wartezeit in ms
+          SchalterAUS(); //Wartet bis der Schalter aus ist
+          StelleArm(0, 400); //Winkel , Wartezeit in ms
+          Grundstellung();
         }
         break;
-      case 2: // schnell ohne Deckel heben ausschalten
-      if (debug) Serial.println("Case 2");
-        if((millis() - ServoArmprev) > 300)
+
+      case 3: // schnell ohne Deckel heben ausschalten
+        if (debug) Serial.println("Case 3");
+        if ((millis() - ServoArmprev) > 170)
         {
           SchalterAUS();
-          ServoArm.write(0);  // Arm wieder zurück ins Körbchen
-          ServoArmprev = millis();
+          StelleArm(0, 0); //Winkel , Wartezeit in ms
+          Grundstellung();
         }
-        break;        
-      case 3: //  mit dem Deckel klappern
-      if (debug) Serial.println("Case 3");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
+        break;
+
+      case 4: //  mit dem Deckel klappern
+        if (debug) Serial.println("Case 4");
+        if ((millis() - ServoArmprev) > ServoArmIntervall)
         {
           for (int i = 0; i <= random(1, 4); i++)
-          { 
-            int winkel = random(25, 35);
-            ServoDeckel.write(winkel);
-            delay(220); 
-            ServoDeckel.write(0);
-            delay(220);
-          }  
-          zufall = 1; // beim nächsten Durchlauf ausmachen
-        }  
-        break;
-      case 4: // langsam Deckel auf ,  langsam - schnell auschalten, langsam Deckel zu
-      if (debug) Serial.println("Case 4");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          delay(100);
-          if( doUltraschall() ) break;
-              
-          for (ServoArmpos = 0; ServoArmpos < 120; ServoArmpos++) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-              if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-              
-            delay(500);
-          if( doUltraschall() ) break;
-            SchalterAUS();
-          if( doUltraschall() ) break;
-          for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
-            ServoArm.write(ServoArmpos);
-            delay(5);
-              if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-                      
-          for (ServoDeckelpos = 45 ; ServoDeckelpos >  0; ServoDeckelpos--) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          ServoDeckel.write(0);
-        }
-        break;
-      case 5: // langsam Deckel auf ,  langsam Deckel zu, schnell Deckel auf, schnell Deckel zu
-      if (debug) Serial.println("Case 5");
-       if((millis() - ServoArmprev) > ServoArmIntervall)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          if( doUltraschall() ) break;
-            delay(500);
-          if( doUltraschall() ) break;
-            delay(500);
-          if( doUltraschall() ) break;
-          
-          for (ServoDeckelpos = 50 ; ServoDeckelpos >  0; ServoDeckelpos--) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          ServoDeckel.write(0);
-          delay(100);
-          
-          ServoDeckel.write(20);
-          delay(800);
-          ServoDeckel.write(0);
-          delay(300);
-          
-         zufall = 1; // beim nächsten Durchlauf ausmachen 
-        }
-        break;
-      case 6:  // Deckel auf, wenn Ultraschall unter 12 cm dann Deckel zu 
-zufall=0;
-break;
-      if (debug) Serial.println("case 6");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(25);
-          }
-          ServoDeckel.write(50);
-          z=0;
-          while (z<100)
           {
-            DoLED(); //blinken
-            z++;
-            delay(100);
-            if( doUltraschall() ) break;
+            int winkel = random(25, 35);
+            StelleDeckel(winkel, 220); //Winkel , Wartezeit in ms
+            StelleDeckel(0, 220); //Winkel , Wartezeit in ms
           }
-        }
-        zufall=0;
-        break;
-      case 7: //langsam auf, US, langsam Arm raus, US , langsam Arm rein, langsam Deckel zu
-     if (debug) Serial.println("Case 7"); 
-        if((millis() - ServoArmprev) > ServoArmIntervall)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          if( doUltraschall() ) break;
-              
-          for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-            
-            SchalterAUS();
-            if( doUltraschall() ) break;
-          for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-            
-          for (ServoDeckelpos = 50 ; ServoDeckelpos >  0; ServoDeckelpos--) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          ServoDeckel.write(0);
+          Grundstellung(); // beim nächsten Durchlauf ausmachen
         }
         break;
-        case 8: // langsam Deckel auf ,  langsam - schnell auschalten, langsam Deckel zu
-        if (debug) Serial.println("Case 8");
-        if((millis() - ServoArmprev) > ServoArmIntervall)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(5);
-          }
-          delay(100);
-          if( doUltraschall() ) break;
-              
-          for (ServoArmpos = 0; ServoArmpos < 165; ServoArmpos++) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-              
-            delay(500);
-          if( doUltraschall() ) break;
-            delay(500);
-          if( doUltraschall() ) break;
-            SchalterAUS();
-            
-            for(int i=0; i<10; i++) {
-              if( doUltraschall() ) {
-                z=1; 
-                break; // die for schleife abbrechen
-              }
-              delay(100);
-            }
-            if(z==1) break; // den case abbrechen
-            
-          for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
-            ServoArm.write(ServoArmpos);
-            delay(3);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-              
-          for (ServoDeckelpos = 50 ; ServoDeckelpos >  0; ServoDeckelpos--) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(3);
-          }
-          ServoDeckel.write(0);
-        }
-        break;
-      case 9: //langsam auf, US, langsam Arm raus, US , langsam Arm rein, schnell Deckel zu
-     if (debug) Serial.println("Case 9"); 
-        if((millis() - ServoArmprev) > 5000)
-        {        
-          for (ServoDeckelpos = 0; ServoDeckelpos < 50; ServoDeckelpos++) {
-            ServoDeckel.write(ServoDeckelpos);
-            delay(15);
-          }
-          if( doUltraschall() ) break;
-              
-          for (ServoArmpos = 0; ServoArmpos < 180; ServoArmpos++) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-              
-            SchalterAUS();
 
-          for (ServoArmpos = 180   ; ServoArmpos > 1   ; ServoArmpos--) {
-            ServoArm.write(ServoArmpos);
-            delay(15);
-            if( doUltraschall() ) { z=1; break; }
-            }
-              if(z==1) break; // den case abbrechen
-              
-          ServoDeckel.write(0);
-        }
-        break;      
-      case 10: // 
-      if (debug) Serial.println("Case 10");
-        if((millis() - ServoArmprev) > 200)
+      case 5: // langsam Deckel auf ,  langsam - schnell auschalten, langsam Deckel zu
+        if (debug) Serial.println("Case 5");
+        if ((millis() - ServoArmprev) > ServoArmIntervall)
         {
-          ServoArm.write(170);  // Schalter ausschalten
-          delay(1500); 
-          ServoDeckel.write(40);
-          delay(1500); 
-          ServoDeckel.write(50);  
-            for(int i=0; i<20; i++) {
-              if( doUltraschall() ) {
-                z=1; 
-                break; // die for schleife abbrechen
-              }
-              delay(100);
-            }
-            if(z==1) break; // den case abbrechen
+          BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+          StelleDeckel(53, 0); //Winkel , Wartezeit in ms
+          BewegeArm(120, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          delay(500);
+          SchalterAUS();
+          BewegeArm(0, 5, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          Grundstellung();
+        }
+        break;
 
-          SchalterAUS();  
+      case 6: // langsam Deckel auf ,  langsam Deckel zu, schnell Deckel auf, schnell Deckel zu
+        if (debug) Serial.println("Case 6");
+        if ((millis() - ServoArmprev) > 3500)
+        {
+          BewegeDeckel(50, 25, false); // Stopposition, speed(delay) in ms
+          delay(1000);
+          BewegeDeckel(0, 22, false); // Stopposition, speed(delay) in ms
+          delay(600);
+          StelleDeckel(45, 1500);  //Winkel , Wartezeit in ms
+          StelleDeckel(0, 3000);  //Winkel , Wartezeit in ms
+          zufall = 3; // beim nächsten Durchlauf ausmachen
+        }
+        break;
+
+
+      case 7: //langsam auf, langsam Arm, langsam Arm rein, langsam Deckel zu
+        if (debug) Serial.println("Case 7");
+        if ((millis() - ServoArmprev) > ServoArmIntervall)
+        {
+          BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms
+          StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
+          BewegeArm(180, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          SchalterAUS();
+          BewegeArm(0, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          Grundstellung();
+        }
+        break;
+
+      case 8: // langsam Deckel auf ,  langsam - schnell auschalten, langsam Deckel zu
+        if (debug) Serial.println("Case 8");
+        if ((millis() - ServoArmprev) > ServoArmIntervall)
+        {
+          BewegeDeckel(55, 10, false); //  Stopposition, speed(delay) in ms
+          StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
+          BewegeArm(165, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          delay(1200);
+          SchalterAUS();
+          BewegeArm(0, 3, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeDeckel(0, 3, false); // Stopposition, speed(delay) in ms
+          Grundstellung();
+        }
+        break;
+
+      case 9: //langsam auf, US, langsam Arm raus, US , langsam Arm rein, schnell Deckel zu
+        if (debug) Serial.println("Case 9");
+        if ((millis() - ServoArmprev) > 5000)
+        {
+          BewegeDeckel(55, 20, false); //  Stopposition, speed(delay) in ms
+          StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
+          BewegeArm(180, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          SchalterAUS();
+          BewegeArm(0, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+          Grundstellung();
+        }
+        break;
+
+      case 10: //
+        if (debug) Serial.println("Case 10");
+        if ((millis() - ServoArmprev) > 200)
+        {
+          StelleArm(170, 1500); //Winkel , Wartezeit in ms
+          StelleDeckel(50, 1500); //Winkel , Wartezeit in ms
+          SchalterAUS();
           delay(800);
-          ServoArm.write(0);
-          delay(200);
-          ServoDeckel.write(0);
+          StelleArm(0, 200); //Winkel , Wartezeit in ms
+          Grundstellung();
+        }
+        break;
+      case 11: //
+        if (debug) Serial.println("Case 11");
+        if ((millis() - ServoArmprev) > 400)
+        {
+          StelleArm(170, 1500); //Winkel , Wartezeit in ms
+          BewegeDeckel(55, 20, false); //Winkel , Wartezeit in ms, US
+          StelleDeckel(53, 0); //Winkel , Wartezeit in ms
+          delay(1500);
+          SchalterAUS();
+          delay(1000);
+          StelleArm(0, 300); //Winkel , Wartezeit in ms
+          Grundstellung();
         }
         break;
     }
 
-
   }
   else  //Schalter aus
-  {
-    LEDStatus = HIGH;
-    zufall = 0; // Zufall wieder zurücksetzen
-    digitalWrite(LEDgruen, LEDStatus);   // LED aus
-    ServoArm.write(0);  // Arm wieder zurück ins Körbchen
-    ServoDeckel.write(0);  // Deckel zu
+  { if (debug) Serial.println("else  //Schalter aus");
+    if ((millis() - ServoArmprev) > 1200000) //12000 Sekunden?
+    {
+      AusZufall = random(1, 3);
+      switch (AusZufall)
+      {
+        case 1:  // Deckel klappern
+          if (debug) Serial.println("case Aus1");
+          for (int i = 0; i <= random(1, 4); i++)
+          {
+            int winkel = random(25, 35);
+            StelleDeckel(winkel, 220); //Winkel , Wartezeit in ms
+            StelleDeckel(0, 220); //Winkel , Wartezeit in ms
+          }
+          Grundstellung();
+          break;
+
+        case 2:  // Deckel auf, wenn Ultraschall unter 12 cm dann Deckel zu
+          if (debug) Serial.println("case Aus2");
+          BewegeDeckel(55, 25, true); // Stopposition, speed(delay) in ms
+          StelleDeckel(53, 100);  //Winkel , Wartezeit in ms
+          while ( ! doUltraschall() ) {}
+          Grundstellung();
+          break;
+      }
+
+
+      LEDStatus = HIGH;
+      digitalWrite(LEDgruen, LEDStatus);   // LED aus
+      Grundstellung();
+    }
   }
 } //Ende Loop
 
+void Grundstellung()
+{
+  StelleArm(0, 0); //Winkel , Wartezeit in ms
+  StelleDeckel(0, 0); //Winkel , Wartezeit in ms
+  ServoArmprev = millis();
+  zufall = 0;
+}
 void DoLED()
 {
   //if (debug) Serial.println("start DoLED");
@@ -344,48 +265,117 @@ void DoLED()
 }
 
 boolean doUltraschall()
-{  
-return(0);  // Ultraschallsensor defekt,  
-  if ((millis() - USprev) > 120)
-  {  Serial.println("Ulstraschall StartMesung  ");
-    duration=0;
-    digitalWrite(trigger, LOW);  
-    delayMicroseconds(2); 
-    digitalWrite(trigger, HIGH);  
+{
+  if ((millis() - USprev) > 40)
+  {
+    duration = 0;
+    digitalWrite(trigger, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigger, HIGH);
     delayMicroseconds(10);
     digitalWrite(trigger, LOW);
     duration = pulseIn(echo, HIGH); // Echo-Zeit messen
     // Echo-Zeit halbieren (weil hin und zurueck, der doppelte Weg ist)
-    duration = (duration/2); 
+    duration = (duration / 2);
     // Zeit des Schalls durch Luft in Zentimeter umrechnen
     distance = duration / 29.1;
-    
+
     USprev = millis();
-    if(debug) {
+    if (debug) {
       Serial.print(distance);
       Serial.println(" cm");
-    }      
-      if(distance<=12)
-      { 
-        ServoArm.write(0);  // Arm wieder zurück ins Körbchen
-        ServoDeckel.write(0);
-        ServoArmprev = millis();
-        zufall=0;
-        digitalWrite(LEDgruen, HIGH); //LED  aus
-        delay(4000);
-        return(1);
-      }
+    }
+    if (distance > 0 && distance <= 12)
+    {
+      z=true;
+      Grundstellung();
+      digitalWrite(LEDgruen, HIGH); //LED  aus
+      delay(1000);
+      exit(0);
+      return (1);
+    }
+    return (0);
   }
-  return(0);
 }
 
+void StelleDeckel(int pos, int wartezeitms) //Winkel , Wartezeit in ms
+{
+  if ( pos >= 0 && pos <= 60 )
+  {
+    ServoDeckelpos = pos;
+    ServoDeckel.write(ServoDeckelpos);
+    delay(wartezeitms);
+  }
+}
+
+void StelleArm(int pos, int wartezeitms) //Winkel , Wartezeit in ms
+{
+  if ( pos >= 0 && pos <= 180 )
+  {
+    ServoArmpos = pos;
+    ServoArm.write(ServoArmpos);
+    delay(wartezeitms);
+  }
+}
 
 void SchalterAUS()
 {
-  while(!SchalterStatus)
+  while (!SchalterStatus)
   {
     ServoArm.write(180);  // Schalter ausschalten
-    SchalterStatus=digitalRead(SchalterPin);
+    ServoArmpos=180;
+    SchalterStatus = digitalRead(SchalterPin);
   }
   digitalWrite(LEDgruen, HIGH); //LED  aus
+}
+
+void BewegeDeckel(int stoppos, int speedms, boolean Ultraschall)
+{
+  if ( stoppos >= 0 && stoppos <= 60 )
+  {
+    if (ServoDeckelpos < stoppos) // Deckel langsam öffnen
+    {
+      for (ServoDeckelpos; ServoDeckelpos < stoppos + 2; ServoDeckelpos++)
+      {
+        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        StelleDeckel(ServoDeckelpos, speedms); //Winkel , Wartezeit in ms
+      }
+      StelleDeckel(stoppos, 0); //Winkel , Wartezeit in ms
+    }
+    else //Deckel langsam schließen
+    {
+      for (ServoDeckelpos; ServoDeckelpos > stoppos; ServoDeckelpos--)
+      {
+        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        StelleDeckel(ServoDeckelpos, speedms); //Winkel , Wartezeit in ms
+      }
+      StelleDeckel(stoppos, 0); //Winkel , Wartezeit in ms
+    }
+  }
+}
+
+void BewegeArm(int stoppos, int speedms, boolean Ultraschall)
+{
+  if ( stoppos >= 0 && stoppos <= 180 )
+  {
+    if (ServoArmpos < stoppos) // Arm langsam raus
+    {
+      for (ServoArmpos; ServoArmpos < stoppos; ServoArmpos++)
+      {
+        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        StelleArm(ServoArmpos, speedms); //Winkel , Wartezeit in ms
+      }
+      StelleArm(stoppos, 0); //Winkel , Wartezeit in ms
+    }
+    else //Arm langsam rein
+    {
+      for (ServoArmpos; ServoArmpos > stoppos; ServoArmpos--)
+      {
+        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        StelleArm(ServoArmpos, speedms); //Winkel , Wartezeit in ms
+      }
+      StelleArm(stoppos, 0); //Winkel , Wartezeit in ms
+    }
+  }
+
 }
