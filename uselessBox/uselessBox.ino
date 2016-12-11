@@ -22,6 +22,7 @@ int zufall = 0; // was Kiste macht ist rein zufällig
 int AusZufall = 1;
 boolean debug = true;
 int Ultraschalldeckel=53; //Deckelstellung ab welcher mit US Messung begonnen wird
+int UltraschallAlarm; // Zähler
 boolean z;  // Abbruchbedingung
 
 void setup() {
@@ -43,6 +44,8 @@ void setup() {
   USprev = millis(); //Zeit merken
   LEDprev = millis(); //Zeit merken
   ServoArmprev = millis(); // Zeit merken
+  UltraschallAlarm = 0;
+  zufall=0;
 }
 
 void loop() {
@@ -116,6 +119,7 @@ void loop() {
           BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
           StelleDeckel(53, 0); //Winkel , Wartezeit in ms
           BewegeArm(120, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          
           delay(500);
           SchalterAUS();
           BewegeArm(0, 5, false); //  Stopposition, speed(delay) in ms  , Ultraschall
@@ -145,7 +149,8 @@ void loop() {
         {
           BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
-          BewegeArm(180, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeArm(180, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
+          
           SchalterAUS();
           BewegeArm(0, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
           BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
@@ -159,7 +164,8 @@ void loop() {
         {
           BewegeDeckel(55, 10, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
-          BewegeArm(165, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeArm(165, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
+          
           delay(1200);
           SchalterAUS();
           BewegeArm(0, 3, false); // Stopposition, speed(delay) in ms  , Ultraschall
@@ -174,7 +180,8 @@ void loop() {
         {
           BewegeDeckel(55, 20, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
-          BewegeArm(180, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+          BewegeArm(180, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
+          
           SchalterAUS();
           BewegeArm(0, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
           Grundstellung();
@@ -211,7 +218,7 @@ void loop() {
 
   }
   else  //Schalter aus
-  { if (debug) Serial.println("else  //Schalter aus");
+  { if (debug) Serial.println("else - Schalter aus");
     if ((millis() - ServoArmprev) > 1200000) //12000 Sekunden?
     {
       AusZufall = random(1, 3);
@@ -285,15 +292,24 @@ boolean doUltraschall()
       Serial.print(distance);
       Serial.println(" cm");
     }
-    if (distance > 0 && distance <= 12)
+    if (distance > 0 && distance <= 12) 
+    { 
+      UltraschallAlarm++; 
+    }
+    else
     {
+      UltraschallAlarm=0;
+    }
+    
+      if( UltraschallAlarm >2 )
+      {
       z=true;
       Grundstellung();
       digitalWrite(LEDgruen, HIGH); //LED  aus
       delay(1000);
-      exit(0);
-      return (1);
+      return(1);
     }
+    
     return (0);
   }
 }
