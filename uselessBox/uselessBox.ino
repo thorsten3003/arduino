@@ -21,9 +21,9 @@ long distance_old = 0;
 int zufall = 0; // was Kiste macht ist rein zufällig
 int AusZufall = 1;
 boolean debug = true;
-int Ultraschalldeckel=53; //Deckelstellung ab welcher mit US Messung begonnen wird
+int Ultraschalldeckel = 53; //Deckelstellung ab welcher mit US Messung begonnen wird
 int UltraschallAlarm; // Zähler
-boolean z;  // Abbruchbedingung
+int z;  // Abbruchbedingung
 
 void setup() {
   Serial.begin(9600); //For debugging
@@ -45,18 +45,18 @@ void setup() {
   LEDprev = millis(); //Zeit merken
   ServoArmprev = millis(); // Zeit merken
   UltraschallAlarm = 0;
-  zufall=0;
+  zufall = 0;
+  z = 0;
 }
 
 void loop() {
-  z = false;
   SchalterStatus = digitalRead(SchalterPin);
   if (SchalterStatus == LOW) //ALSO EINGESCHALTET !!!
   {
     digitalWrite(LEDgruen, LOW); //LED An
     if (zufall == 0) // Beim ersten Durchlauf...
     {
-      zufall = random(1,12);//(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger" 1, 11
+      zufall = random(1, 12); //(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger" 1, 11
       ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
       ServoArmIntervall = 100 * random(1 , 30); //Auf jeden Fall ein paar Sekunden warten
     }
@@ -72,8 +72,10 @@ void loop() {
         {
           SchalterStatus = digitalRead(SchalterPin);
           if (SchalterStatus == HIGH) break;
-          
-          if ((millis() - ServoArmprev) > 120000) { break; }
+
+          if ((millis() - ServoArmprev) > 120000) {
+            break;
+          }
         }
         zufall = 0;
         break;
@@ -118,12 +120,18 @@ void loop() {
         {
           BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
           StelleDeckel(53, 0); //Winkel , Wartezeit in ms
-          BewegeArm(120, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
-          
-          delay(500);
-          SchalterAUS();
-          BewegeArm(0, 5, false); //  Stopposition, speed(delay) in ms  , Ultraschall
-          BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          BewegeArm(120, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
+          if (z == 1)
+          {  Serial.println("z == 1");
+            z = 0; Grundstellung();
+          }
+          else
+          {  Serial.println("else Teil z == 0");
+            delay(500);
+            SchalterAUS();
+            BewegeArm(0, 5, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+            BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          }
           Grundstellung();
         }
         break;
@@ -150,10 +158,16 @@ void loop() {
           BewegeDeckel(55, 15, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
           BewegeArm(180, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
-          
-          SchalterAUS();
-          BewegeArm(0, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
-          BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          if (z == 1)
+          {  Serial.println("z == 1");
+            z = 0; Grundstellung();
+          }
+          else
+          {  Serial.println("else Teil z == 0");
+            SchalterAUS();
+            BewegeArm(0, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+            BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+          }
           Grundstellung();
         }
         break;
@@ -165,11 +179,17 @@ void loop() {
           BewegeDeckel(55, 10, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
           BewegeArm(165, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
-          
-          delay(1200);
-          SchalterAUS();
-          BewegeArm(0, 3, false); // Stopposition, speed(delay) in ms  , Ultraschall
-          BewegeDeckel(0, 3, false); // Stopposition, speed(delay) in ms
+          if (z == 1)
+          {  Serial.println("z == 1");
+            z = 0; Grundstellung();
+          }
+          else
+          {  Serial.println("else Teil z == 0");
+            delay(1200);
+            SchalterAUS();
+            BewegeArm(0, 3, false); // Stopposition, speed(delay) in ms  , Ultraschall
+            BewegeDeckel(0, 3, false); // Stopposition, speed(delay) in ms
+          }
           Grundstellung();
         }
         break;
@@ -181,9 +201,15 @@ void loop() {
           BewegeDeckel(55, 20, false); //  Stopposition, speed(delay) in ms
           StelleDeckel(53, 0);  //Winkel , Wartezeit in ms
           BewegeArm(180, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
-          
-          SchalterAUS();
-          BewegeArm(0, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+          if (z == 1)
+          {  Serial.println("z == 1");
+            z = 0; Grundstellung();
+          }
+          else
+          {  Serial.println("else Teil z == 0");
+            SchalterAUS();
+            BewegeArm(0, 15, false); //  Stopposition, speed(delay) in ms  , Ultraschall
+          }
           Grundstellung();
         }
         break;
@@ -292,24 +318,24 @@ boolean doUltraschall()
       Serial.print(distance);
       Serial.println(" cm");
     }
-    if (distance > 0 && distance <= 12) 
-    { 
-      UltraschallAlarm++; 
+    if (distance > 0 && distance <= 12)
+    {
+      UltraschallAlarm++;
     }
     else
     {
-      UltraschallAlarm=0;
+      UltraschallAlarm = 0;
     }
-    
-      if( UltraschallAlarm >2 )
-      {
-      z=true;
+
+    if ( UltraschallAlarm > 2 )
+    {
+      z = 1;
       Grundstellung();
       digitalWrite(LEDgruen, HIGH); //LED  aus
       delay(1000);
-      return(1);
+      return (1);
     }
-    
+
     return (0);
   }
 }
@@ -339,7 +365,7 @@ void SchalterAUS()
   while (!SchalterStatus)
   {
     ServoArm.write(180);  // Schalter ausschalten
-    ServoArmpos=180;
+    ServoArmpos = 180;
     SchalterStatus = digitalRead(SchalterPin);
   }
   digitalWrite(LEDgruen, HIGH); //LED  aus
@@ -353,7 +379,9 @@ void BewegeDeckel(int stoppos, int speedms, boolean Ultraschall)
     {
       for (ServoDeckelpos; ServoDeckelpos < stoppos + 2; ServoDeckelpos++)
       {
-        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        if (ServoDeckelpos >= Ultraschalldeckel && Ultraschall == true ) {
+          if(doUltraschall() ==1 ) {ServoDeckelpos=stoppos+2; break;}
+        }
         StelleDeckel(ServoDeckelpos, speedms); //Winkel , Wartezeit in ms
       }
       StelleDeckel(stoppos, 0); //Winkel , Wartezeit in ms
@@ -362,7 +390,9 @@ void BewegeDeckel(int stoppos, int speedms, boolean Ultraschall)
     {
       for (ServoDeckelpos; ServoDeckelpos > stoppos; ServoDeckelpos--)
       {
-        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        if (ServoDeckelpos >= Ultraschalldeckel && Ultraschall == true ) {
+          if(doUltraschall() ==1 ) {ServoDeckelpos=stoppos; break;}
+        }
         StelleDeckel(ServoDeckelpos, speedms); //Winkel , Wartezeit in ms
       }
       StelleDeckel(stoppos, 0); //Winkel , Wartezeit in ms
@@ -378,7 +408,9 @@ void BewegeArm(int stoppos, int speedms, boolean Ultraschall)
     {
       for (ServoArmpos; ServoArmpos < stoppos; ServoArmpos++)
       {
-        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        if (ServoDeckelpos >= Ultraschalldeckel && Ultraschall == true ) {
+          if(doUltraschall() ==1 ) {ServoArmpos=stoppos; break;}
+        }
         StelleArm(ServoArmpos, speedms); //Winkel , Wartezeit in ms
       }
       StelleArm(stoppos, 0); //Winkel , Wartezeit in ms
@@ -387,7 +419,9 @@ void BewegeArm(int stoppos, int speedms, boolean Ultraschall)
     {
       for (ServoArmpos; ServoArmpos > stoppos; ServoArmpos--)
       {
-        if(ServoDeckelpos >= Ultraschalldeckel && Ultraschall==true ) { doUltraschall(); }
+        if (ServoDeckelpos >= Ultraschalldeckel && Ultraschall == true ) {
+          if(doUltraschall() ==1 ) {ServoArmpos=stoppos; break;}
+        }
         StelleArm(ServoArmpos, speedms); //Winkel , Wartezeit in ms
       }
       StelleArm(stoppos, 0); //Winkel , Wartezeit in ms
