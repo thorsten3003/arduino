@@ -1,21 +1,26 @@
 #include "pitches.h"
 
-int speakerPin = 9; // speaker connected to digital pin 9
+int speakerPin = 11; // speaker connected to digital pin 11
 // notes in the melody, note durations: 4 = quarter note, 8 = eighth note, etc.:
 
 
 void setup() {
-  int toene[] = { NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4 };
-  int dauer[] = { 4, 8, 8, 4, 4, 4, 4, 4 };
-  int anzahlToene=8;
-//  play(toene, dauer, anzahlToene);
-
+  int toene[] = { NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_D3, NOTE_D3, NOTE_E3, NOTE_D3, NOTE_G3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_G3, NOTE_F3, NOTE_D3, NOTE_C3};
+  int dauer[] = { 4, 4, 2, 4, 4, 2, 4, 4, 4, 4 ,1, 4,4,4,4,4,4,4,8,8,4,4,4,4,2,2, 4,4,2,4,4,2,4,4,4,4,2, 4,4,4,4,4,4,4,8,8,4,4,4,4,1};
+  int anzahlToene=52;
+  play(toene, dauer, anzahlToene);
+//FFF GF EEEEE DD EDG 
+//EEEEEEEGCDE
+//FFF GFEEEEGGDC
 delay(2000);
+
+
+
 
   int r2toene[] = { NOTE_A3, NOTE_G3, NOTE_E3, NOTE_C3, NOTE_D3, NOTE_B3, NOTE_F3, NOTE_C3, NOTE_A3, NOTE_G3, NOTE_E3, NOTE_C3, NOTE_D3, NOTE_B3, NOTE_F3, NOTE_C3 };
   int r2dauer[] = { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
   int r2anzahlToene=16;
-  play(r2toene, r2dauer, r2anzahlToene);
+//  play(r2toene, r2dauer, r2anzahlToene);
 
 }
 

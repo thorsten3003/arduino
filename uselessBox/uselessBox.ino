@@ -1,6 +1,7 @@
 
 #include "Servo.h"
 #include "musical_notes.h"
+#include "pitches.h"
 unsigned long LEDprev; //Zeitspeicher für LED
 unsigned long USprev; //Zeitspeicher für Ultraschall
 unsigned long ServoArmprev; //Zeitspeicher für Servo
@@ -14,7 +15,7 @@ int LEDIntervall = 700; //1 Sekunde
 int LEDStatus = HIGH;
 int SchalterPin = 8;
 int SchalterStatus;
-int speakerPin = 6; // speaker connected to digital pin 6
+int speakerPin = 11; // speaker connected to digital pin 6
 #define trigger 9  // Arduino Pin an HC-SR04 Trig
 #define echo 10     // Arduino Pin an HC-SR04 Echo
 long duration = 0;
@@ -26,6 +27,9 @@ boolean debug = true;
 int Ultraschalldeckel = 53; //Deckelstellung ab welcher mit US Messung begonnen wird
 int UltraschallAlarm; // Zähler
 int z;  // Abbruchbedingung
+int jinglebells[] = { NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_D3, NOTE_D3, NOTE_E3, NOTE_D3, NOTE_G3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_G3, NOTE_F3, NOTE_D3, NOTE_C3};
+int jinglebellsdauer[] = { 4, 4, 2, 4, 4, 2, 4, 4, 4, 4 ,1, 4,4,4,4,4,4,4,8,8,4,4,4,4,2,2, 4,4,2,4,4,2,4,4,4,4,2, 4,4,4,4,4,4,4,8,8,4,4,4,4,1};
+int jinglebellsanzahlToene=52;
 
 void setup() {
   Serial.begin(9600); //For debugging
@@ -281,7 +285,7 @@ void loop() {
           BewegeDeckel(15, 25, true); // Stopposition, speed(delay) in ms
           StelleDeckel(13, 0);  //Winkel , Wartezeit in ms
 
-          SoundZufall = random(1, 3);
+          SoundZufall = random(1, 4);
           switch (SoundZufall)
           {
             case 1:
@@ -290,6 +294,10 @@ void loop() {
             case 2:
               ariel();
               break;
+            case 3:
+              play(jinglebells, jinglebellsdauer, jinglebellsanzahlToene);
+              break;  
+              
           }
           break;
         case 4:  // Sound
@@ -751,3 +759,14 @@ void laugh() {
   }
   delay(50);
 }
+
+  void play(int melody[], int noteDurations[], int anzahlToene) {  //#include "pitches.h"
+    for (int thisNote = 0; thisNote < anzahlToene; thisNote++) {
+      int noteDuration = 1000 / noteDurations[thisNote];
+      tone(speakerPin, melody[thisNote], noteDuration);
+      int pauseBetweenNotes = noteDuration * 1.30;
+      delay(pauseBetweenNotes);
+
+      noTone(speakerPin); // stop the tone playing:
+    }
+  }
