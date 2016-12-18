@@ -28,8 +28,9 @@ int Ultraschalldeckel = 53; //Deckelstellung ab welcher mit US Messung begonnen 
 int UltraschallAlarm; // Zähler
 int z;  // Abbruchbedingung
 int jinglebells[] = { NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_D3, NOTE_D3, NOTE_E3, NOTE_D3, NOTE_G3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_C3, NOTE_D3, NOTE_E3, NOTE_F3, NOTE_F3, NOTE_F3, NOTE_G3, NOTE_F3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_E3, NOTE_G3, NOTE_G3, NOTE_F3, NOTE_D3, NOTE_C3};
-int jinglebellsdauer[] = { 4, 4, 2, 4, 4, 2, 4, 4, 4, 4 ,1, 4,4,4,4,4,4,4,8,8,4,4,4,4,2,2, 4,4,2,4,4,2,4,4,4,4,2, 4,4,4,4,4,4,4,8,8,4,4,4,4,1};
-int jinglebellsanzahlToene=52;
+int jinglebellsdauer[] = { 4, 4, 2, 4, 4, 2, 4, 4, 4, 4 , 1, 4, 4, 4, 4, 4, 4, 4, 8, 8, 4, 4, 4, 4, 2, 2, 4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 8, 8, 4, 4, 4, 4, 1};
+int jinglebellsanzahlToene = 52;
+int Spieluhr = 0;
 
 void setup() {
   Serial.begin(9600); //For debugging
@@ -54,6 +55,19 @@ void setup() {
   UltraschallAlarm = 0;
   zufall = 0;
   z = 0;
+
+  // Auswahl Spieluhr oder useless Box
+  digitalWrite(LEDgruen, LOW); //LED An
+  delay(4000);
+  SchalterStatus = digitalRead(SchalterPin);
+  if (SchalterStatus == LOW) //ALSO EINGESCHALTET !!!
+  {
+    Spieluhr = 1;
+    squeak();
+    delay(4000);
+  }
+  Grundstellung();
+  digitalWrite(LEDgruen, HIGH); //LED Aus
 }
 
 void loop() {
@@ -61,9 +75,15 @@ void loop() {
   if (SchalterStatus == LOW) //ALSO EINGESCHALTET !!!
   {
     digitalWrite(LEDgruen, LOW); //LED An
+    if (Spieluhr == 1)
+    {
+      zufall = 12;
+    }
+
+
     if (zufall == 0) // Beim ersten Durchlauf...
     {
-      zufall = random(1, 12); //(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger" 1, 11
+      zufall = random(1, 13); //(1, 11); //wenn noch kein Zufall gefunden wurde, dann Zahlen von 1 bis "eine Zahl weniger" 1, 11
       ServoArmprev = millis(); //Zeitzählung ab Schalter betätigung
       ServoArmIntervall = 100 * random(1 , 30); //Auf jeden Fall ein paar Sekunden warten
     }
@@ -249,8 +269,31 @@ void loop() {
           Grundstellung();
         }
         break;
-    }
 
+      case 12: // Spieluhr
+        if (Spieluhr == 1)  //Nur ausführen wenn auch Spieluhr gewählt
+        {
+          if (debug) Serial.println("Case Spieluhr");
+          if ((millis() - ServoArmprev) > 4000)
+          {
+            BewegeDeckel(15, 25, true); // Stopposition, speed(delay) in ms
+            StelleDeckel(13, 0);  //Winkel , Wartezeit in ms
+            play(jinglebells, jinglebellsdauer, jinglebellsanzahlToene);
+            if (SchalterStatus == LOW) //Eingeschaltet
+              {
+                BewegeDeckel(48, 15, false); //  Stopposition, speed(delay) in ms
+                StelleDeckel(46, 0);  //Winkel , Wartezeit in ms
+                BewegeArm(180, 15, true); // Stopposition, speed(delay) in ms  , Ultraschall
+                SchalterAUS();
+                BewegeArm(0, 15, false); // Stopposition, speed(delay) in ms  , Ultraschall
+              }  
+            BewegeDeckel(0, 15, false); // Stopposition, speed(delay) in ms
+            Grundstellung();
+            LEDStatus = HIGH;
+            digitalWrite(LEDgruen, LEDStatus);   // LED aus
+          }
+        }
+    }
   }
   else  //Schalter aus
   { if (debug) Serial.println("else - Schalter aus");
@@ -285,7 +328,7 @@ void loop() {
           BewegeDeckel(15, 25, true); // Stopposition, speed(delay) in ms
           StelleDeckel(13, 0);  //Winkel , Wartezeit in ms
 
-          SoundZufall = random(1, 4);
+          SoundZufall = random(1, 3);
           switch (SoundZufall)
           {
             case 1:
@@ -294,12 +337,10 @@ void loop() {
             case 2:
               ariel();
               break;
-            case 3:
-              play(jinglebells, jinglebellsdauer, jinglebellsanzahlToene);
-              break;  
-              
           }
+          Grundstellung();
           break;
+
         case 4:  // Sound
           if (debug) Serial.println("case Aus4");
           SoundZufall = random(1, 8);
@@ -760,13 +801,15 @@ void laugh() {
   delay(50);
 }
 
-  void play(int melody[], int noteDurations[], int anzahlToene) {  //#include "pitches.h"
-    for (int thisNote = 0; thisNote < anzahlToene; thisNote++) {
-      int noteDuration = 1000 / noteDurations[thisNote];
-      tone(speakerPin, melody[thisNote], noteDuration);
-      int pauseBetweenNotes = noteDuration * 1.30;
-      delay(pauseBetweenNotes);
+void play(int melody[], int noteDurations[], int anzahlToene) {  //#include "pitches.h"
+  for (int thisNote = 0; thisNote < anzahlToene; thisNote++) {
+    int noteDuration = 1000 / noteDurations[thisNote];
+    tone(speakerPin, melody[thisNote], noteDuration);
+    int pauseBetweenNotes = noteDuration * 1.30;
+    delay(pauseBetweenNotes);
 
-      noTone(speakerPin); // stop the tone playing:
-    }
+    noTone(speakerPin); // stop the tone playing:
+      SchalterStatus = digitalRead(SchalterPin);
+      if (SchalterStatus == HIGH) { break; }
   }
+}
