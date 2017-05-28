@@ -134,61 +134,156 @@ void loop(void)
                   Serial.println();
                  
 // LEDs und Lüftersteuerung                  
-  if(tmpDiff <= 1.5) {
-      digitalWrite(led1V, HIGH); 
+  if(tmpDiff < 1.0 {
+      digitalWrite(led1V, LOW); 
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
       digitalWrite(led5V, LOW); 
-      
-      runterpusten=false;
-      analogWrite(luefter, 0); // Lüfter aus. By changing values from 0 to 255 you can control motor speed
-      analogWrite(luefter2, 0);
     }     
     
-  if(tmpDiff > 1.5 and tmpDiff <=2.5) {
+  if(tmpDiff >= 1.0 and tmpDiff <2.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, LOW);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff >= 2.0 and tmpDiff <3.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, HIGH);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, LOW);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff > 3.0 and tmpDiff <4.0) {
       digitalWrite(led1V, HIGH);
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
       digitalWrite(led5V, LOW); 
-      
-      if(!runterpusten) analogWrite(luefter, 0); // Lüfter aus. By changing values from 0 to 255 you can control motor speed
-      if(!runterpusten) analogWrite(luefter2, 0);
+    }   
+  if(tmpDiff >= 4.0 and tmpDiff <5.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, LOW);
+      digitalWrite(led5V, LOW); 
     }  
     
-  if(tmpDiff > 2.5 and tmpDiff <=3.5) {
+  if(tmpDiff >= 5.0 and tmpDiff <6.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, LOW);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff > 6.0 and tmpDiff <7.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, HIGH);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, LOW);
+      digitalWrite(led5V, LOW); 
+    }       
+
+  if(tmpDiff > 7.0 and tmpDiff <8.0) {
       digitalWrite(led1V, HIGH);
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, LOW);
       digitalWrite(led5V, LOW); 
-      
-      if(!runterpusten) analogWrite(luefter, 255); 
+    }   
+
+  if(tmpDiff >= 8.0 and tmpDiff <9.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
     }  
     
-  if(tmpDiff > 3.5 and tmpDiff <=4.5) {
+  if(tmpDiff >= 9.0 and tmpDiff <10.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff > 10.0 and tmpDiff <11.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, HIGH);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }    
+
+  if(tmpDiff >= 11.0 and tmpDiff <12.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, HIGH);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff >= 12.0 and tmpDiff <13.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff > 13.0 and tmpDiff <14.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }            
+    
+  if(tmpDiff >= 14.0 and tmpDiff <15.0) {
+      digitalWrite(led1V, HIGH);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, HIGH);
+      digitalWrite(led4V, HIGH);
+      digitalWrite(led5V, LOW); 
+    }  
+    
+  if(tmpDiff >= 15.0 and tmpDiff <16.0) {
       digitalWrite(led1V, HIGH);
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, HIGH);
       digitalWrite(led5V, LOW); 
-      
-      if(!runterpusten) analogWrite(luefter, 255);
-    }   
+    }  
     
-  if(tmpDiff > 4.5) {
-      digitalWrite(led1V, HIGH);
-      digitalWrite(led2V, HIGH);
-      digitalWrite(led3V, HIGH);
-      digitalWrite(led4V, HIGH);
+  if(tmpDiff > 16.0) {
+      digitalWrite(led1V, LOW);
+      digitalWrite(led2V, LOW);
+      digitalWrite(led3V, LOW);
+      digitalWrite(led4V, LOW);
       digitalWrite(led5V, HIGH); 
+    }       
+  
       
-      runterpusten=true;
-      analogWrite(luefter, 255); // By changing values from 0 to 255 you can control motor speed
-      analogWrite(luefter2, 255);
-    }   
+    if (tmpDiff >=1.5) {
+      stufeluefter =  map(tmpDiff, 1.5, 16, 60, 200);
+      stufeluefter2 = map(tmpDiff, 3, 16, 60, 255);
+    }
+    else
+   
+      stufeluefter = 0;
+      stufeluefter2 =0;
+   }
+
+      analogWrite(luefter, stufeluefter);         // By changing values from 0 to 255 you can control motor speed
+      analogWrite(luefter2, stufeluefter2);
+     
     
 
-  delay(60000);
+  delay(15000);
 }
