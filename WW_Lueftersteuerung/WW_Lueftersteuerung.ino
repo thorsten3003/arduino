@@ -120,18 +120,8 @@ void loop(void)
   temp1 = getTemperature(sensor1);
   temp2 = getTemperature(sensor2);
   tmpDiff = temp1 - temp2;
-  boolean runterpusten =false; 
   
-                  Serial.print(sensor1Name);
-                  Serial.print(temp1);
-                  Serial.println(" Celsius");
-                  Serial.print(sensor2Name);
-                  Serial.print(temp2);
-                  Serial.println(" Celsius");
-                  Serial.print("Differenz: ");
-                  Serial.print(tmpDiff);
-                  Serial.println();
-                  Serial.println();
+  Serial.println(sensor1Name + ": " + temp1 + " Celsius, " + sensor2Name + ": " + temp2 + " Celsius. = Differenz: " + tmpDiff);
                  
 // LEDs und Lüftersteuerung                  
   if(tmpDiff < 1.0 {
@@ -279,11 +269,10 @@ void loop(void)
       stufeluefter = 0;
       stufeluefter2 =0;
    }
-
-      analogWrite(luefter, stufeluefter);         // By changing values from 0 to 255 you can control motor speed
-      analogWrite(luefter2, stufeluefter2);
-     
-    
-
+   
+  analogWrite(luefter, stufeluefter);         // By changing values from 0 to 255 you can control motor speed
+  analogWrite(luefter2, stufeluefter2);    
+  Serial.println("Stufe Lüfter1: " + stufeluefter +" -  Stufe Lüfter2: " + stufeluefter2 );
+  
   delay(15000);
 }
