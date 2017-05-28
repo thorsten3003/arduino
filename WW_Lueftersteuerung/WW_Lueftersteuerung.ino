@@ -23,6 +23,8 @@ int led5V = 9;
  // Transistor der den Lüfter steuert
  int luefter = 11;
  int luefter2 = 12; 
+ int stufeluefter = 0;
+ int stufeluefter2 = 0;
  
 void setup(void) 
 {
@@ -121,10 +123,18 @@ void loop(void)
   temp2 = getTemperature(sensor2);
   tmpDiff = temp1 - temp2;
   
-  Serial.println(sensor1Name + ": " + temp1 + " Celsius, " + sensor2Name + ": " + temp2 + " Celsius. = Differenz: " + tmpDiff);
+ Serial.print(sensor1Name);
+ Serial.print(" : ");
+ Serial.print(temp1);
+ Serial.println(" Celsius, ");
+ Serial.print(sensor2Name);
+ Serial.print(": ");
+ Serial.print(temp2);
+ Serial.print(" Celsius. = Differenz: ");
+ Serial.println(tmpDiff);
                  
 // LEDs und Lüftersteuerung                  
-  if(tmpDiff < 1.0 {
+  if(tmpDiff < 1.0) {
       digitalWrite(led1V, LOW); 
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, LOW);
@@ -265,14 +275,17 @@ void loop(void)
       stufeluefter2 = map(tmpDiff, 3, 16, 60, 255);
     }
     else
-   
+   {
       stufeluefter = 0;
       stufeluefter2 =0;
    }
    
   analogWrite(luefter, stufeluefter);         // By changing values from 0 to 255 you can control motor speed
   analogWrite(luefter2, stufeluefter2);    
-  Serial.println("Stufe Lüfter1: " + stufeluefter +" -  Stufe Lüfter2: " + stufeluefter2 );
+  Serial.print("Stufe Lüfter1: ");
+  Serial.print(stufeluefter);
+  Serial.print(" -  Stufe Lüfter2: ");
+  Serial.println(stufeluefter2);
   
   delay(15000);
 }
