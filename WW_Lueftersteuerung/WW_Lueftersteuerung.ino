@@ -18,14 +18,18 @@ int led5V = 9;
  
  float temp1 = 0.0;
  float temp2 = 0.0;
- float tmpDiff=0.0;
- 
+ float tmpDiffalt = 0.0;
+ float tmpDiff = 0.0;
+ int offset = 0;
+ int grundwert = 60;
+
  // Transistor der den Lüfter steuert
  int luefter = 11;
  int luefter2 = 12; 
  int stufeluefter = 0;
  int stufeluefter2 = 0;
- 
+ int stufeLuefterAllg = 0;
+
 void setup(void) 
 {
   Serial.begin(9600);
@@ -41,16 +45,20 @@ void setup(void)
   
   // Lauflicht zur Initialisierung der LEDs
   digitalWrite(led1V, HIGH);
-  delay(100);
+    analogWrite(luefter2, 255); 
+    delay(10000);
   digitalWrite(led2V, HIGH);
-    delay(100);
+    delay(10000);
   digitalWrite(led3V, HIGH);
-    delay(100);
+    analogWrite(luefter2, 0); 
+    delay(3000);
   digitalWrite(led4V, HIGH);
-    delay(100);
+    analogWrite(luefter, 255); 
+    delay(10000);
   digitalWrite(led5V, HIGH);  
-    delay(200);
+    delay(10000);
   digitalWrite(led5V, LOW);
+    analogWrite(luefter, 0);   
     delay(100);
   digitalWrite(led4V, LOW);
     delay(100);
@@ -60,6 +68,7 @@ void setup(void)
 
 }
  
+
 void writeTimeToScratchpad(byte* address)
 {
   //reset the bus
@@ -115,12 +124,14 @@ float getTemperature(byte* address)
  
   return tr - (float)0.25 + (cpc - cr)/(float)cpc;
 }
- 
+
+
 void loop(void) 
 {
   
   temp1 = getTemperature(sensor1);
   temp2 = getTemperature(sensor2);
+  tmpDiffalt = tmpDiff;
   tmpDiff = temp1 - temp2;
   
  Serial.print(sensor1Name);
@@ -140,8 +151,8 @@ void loop(void)
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
       digitalWrite(led5V, LOW); 
-    }     
-    
+    } 
+  
   if(tmpDiff >= 1.0 and tmpDiff <2.0) {
       digitalWrite(led1V, HIGH);
       digitalWrite(led2V, LOW);
@@ -155,7 +166,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }  
     
   if(tmpDiff > 3.0 and tmpDiff <4.0) {
@@ -163,14 +174,15 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }   
+  
   if(tmpDiff >= 4.0 and tmpDiff <5.0) {
       digitalWrite(led1V, LOW);
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);    
     }  
     
   if(tmpDiff >= 5.0 and tmpDiff <6.0) {
@@ -178,7 +190,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);      
     }  
     
   if(tmpDiff > 6.0 and tmpDiff <7.0) {
@@ -186,7 +198,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }       
 
   if(tmpDiff > 7.0 and tmpDiff <8.0) {
@@ -194,7 +206,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);
     }   
 
   if(tmpDiff >= 8.0 and tmpDiff <9.0) {
@@ -202,7 +214,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }  
     
   if(tmpDiff >= 9.0 and tmpDiff <10.0) {
@@ -210,7 +222,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);    
     }  
     
   if(tmpDiff > 10.0 and tmpDiff <11.0) {
@@ -218,7 +230,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);      
     }    
 
   if(tmpDiff >= 11.0 and tmpDiff <12.0) {
@@ -226,7 +238,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);    
     }  
     
   if(tmpDiff >= 12.0 and tmpDiff <13.0) {
@@ -234,7 +246,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);      
     }  
     
   if(tmpDiff > 13.0 and tmpDiff <14.0) {
@@ -242,7 +254,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }            
     
   if(tmpDiff >= 14.0 and tmpDiff <15.0) {
@@ -250,7 +262,7 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);     
     }  
     
   if(tmpDiff >= 15.0 and tmpDiff <16.0) {
@@ -258,7 +270,7 @@ void loop(void)
       digitalWrite(led2V, HIGH);
       digitalWrite(led3V, HIGH);
       digitalWrite(led4V, HIGH);
-      digitalWrite(led5V, LOW); 
+      digitalWrite(led5V, LOW);      
     }  
     
   if(tmpDiff > 16.0) {
@@ -266,21 +278,27 @@ void loop(void)
       digitalWrite(led2V, LOW);
       digitalWrite(led3V, LOW);
       digitalWrite(led4V, LOW);
-      digitalWrite(led5V, HIGH); 
+      digitalWrite(led5V, HIGH);     
     }       
   
-      
-    if (tmpDiff >=1.5) {
-      stufeluefter =  map(tmpDiff, 1.5, 16, 60, 200);
-      stufeluefter2 = map(tmpDiff, 3, 16, 60, 255);
-    }
-    else
-   {
-      stufeluefter = 0;
-      stufeluefter2 =0;
-   }
-   
-  analogWrite(luefter, stufeluefter);         // By changing values from 0 to 255 you can control motor speed
+
+if( (tmpDiffalt - tmpDiff) < 0) { offset +=20; }     // falsche Richtung / Temp. steigt
+if( (tmpDiffalt - tmpDiff) == 0 && tmpDiff > 1)  { offset +=10; }  // Temp bleibt gleich und Differenz über 1 Grad
+if( (tmpDiffalt - tmpDiff) > 0) { offset -=10; }      // Temperatur sinkt
+
+stufeLuefterAllg = (tmpDiff * 20 ) + grundwert + offset;
+ 
+if(tmpDiff > 1) {
+  stufeluefter2 = stufeLuefterAllg;         
+  stufeluefter  = stufeLuefterAllg; 
+} 
+else {
+  stufeluefter2 = stufeLuefterAllg;         
+  stufeluefter  = 0; 
+}
+
+
+  analogWrite(luefter, stufeluefter);         
   analogWrite(luefter2, stufeluefter2);    
   Serial.print("Stufe Lüfter1: ");
   Serial.print(stufeluefter);
