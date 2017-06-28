@@ -55,15 +55,17 @@ void setup(void)
     delay(100);
   digitalWrite(led5V, HIGH);  
     delay(200);
+    delay(50000);
   digitalWrite(led5V, LOW);
     delay(100);
   digitalWrite(led4V, LOW);
     delay(100);
   digitalWrite(led3V, LOW);
     delay(100);
-  delay(5000);
-  analogWrite(luefter, 15);
   digitalWrite(led2V, LOW);
+  
+  analogWrite(luefter, 15);
+
 }
  
 void writeTimeToScratchpad(byte* address)
