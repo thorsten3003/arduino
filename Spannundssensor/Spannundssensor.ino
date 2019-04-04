@@ -118,7 +118,7 @@ void loop() {
 
 // ---------
 
-  if ((millis() - Zeitprev) > 10000) { //60 Sekunden warten
+  if ((millis() - Zeitprev) > 60000) { //60 Sekunden warten
     Zeitprev=millis();
 
   float vout = (analogRead(SENSOR) * MAX_VIN) / 1024.0f;
@@ -128,7 +128,7 @@ void loop() {
   Serial.println("V");
   
 
-  if( (vin<12.40) && (sollSteckdoseStatus==0) ) {
+  if( (vin<=12.00) && (sollSteckdoseStatus==0) ) {
     Serial.println("Schalte EIN ");
     doSteckdose(11); //einschalten 
     Zeiteingeschaltet=millis();
@@ -136,7 +136,7 @@ void loop() {
   }
 
      
- if ( (millis() - Zeiteingeschaltet > 30000) && (sollSteckdoseStatus==1) ) {
+ if ( (millis() - Zeiteingeschaltet > 3600000) && (vin<13.00) && (sollSteckdoseStatus==1) ) {
     Serial.println("Schalte AUS ");
     doSteckdose(10); //ausschalten
     sollSteckdoseStatus=0;
