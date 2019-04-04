@@ -21,8 +21,11 @@ unsigned long byteCount = 0;
 bool printWebData = true;  // set to false for better speed measurement
 bool isImNetz=false;
 int statusSteckdose=3;
+int sollSteckdoseStatus=0;
+unsigned long Zeitprev; //Zeitspeicher 
+unsigned long  Zeiteingeschaltet; //Zeitspeicher wann eingeschatet wurde
 
-
+// ##################################################
 
 void softwareReset( uint8_t prescaller) {
   Serial.println("Reset in 60 Sekunden:");
@@ -30,6 +33,40 @@ void softwareReset( uint8_t prescaller) {
   wdt_enable( prescaller);
   while(1) {}
 }
+
+  int doSteckdose(int Schaltstatus) {
+       Serial.print("Schaltstatus: ");
+       Serial.println(Schaltstatus);
+  client.stop();
+  
+  if (client.connect(server, 80)) {
+    Serial.println("connecting... ");
+    Serial.println(client.remoteIP());
+    // Make a HTTP request:
+    if(Schaltstatus ==10) {
+      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=0 HTTP/1.1");
+      Serial.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=0 HTTP/1.1");
+    }
+    else if(Schaltstatus ==11) {
+      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=1 HTTP/1.1");
+      Serial.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=1 HTTP/1.1");
+    }
+    else if(Schaltstatus ==13) {
+      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7 HTTP/1.1");
+      Serial.println("GET /api/relay/0?apikey=DEA130E8984A22D7 HTTP/1.1");
+    }
+    client.println("Host: 172.17.2.60");
+    client.println("User-Agent: arduino-ethernet");
+    client.println("Connection: close");
+    client.println();
+  } else {
+    // if you didn't get a connection to the server:
+    Serial.println("connection failed");
+    isImNetz=false;
+  }
+}
+
+// ##################################################
 
 
 void setup() {
@@ -55,46 +92,13 @@ void setup() {
   }
  
   delay(1000); // give the Ethernet shield a second to initialize:
+  Zeitprev = millis(); //Zeit merken
 }
 
-  int doSteckdose(int status) {
-  // close any connection before send a new request.
-  // This will free the socket on the WiFi shield
-  client.stop();
-  
-  // if you get a connection, report back via serial:
-  if (client.connect(server, 80)) {
-    Serial.print("connecting... ");
-    Serial.println(client.remoteIP());
-    // Make a HTTP request:
-    if(status ==0) {
-      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=0 HTTP/1.1");
-    }
-    if(status ==1) {
-      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7&value=1 HTTP/1.1");
-    }
-    if(status ==3) {
-      client.println("GET /api/relay/0?apikey=DEA130E8984A22D7 HTTP/1.1");
-    }
-    client.println("Host: 172.17.2.60");
-    client.println("User-Agent: arduino-ethernet");
-    client.println("Connection: close");
-    client.println();
-  } else {
-    // if you didn't get a connection to the server:
-    Serial.println("connection failed");
-    isImNetz=false;
-  }
-}
+
   
 void loop() {
-  float vout = (analogRead(SENSOR) * MAX_VIN) / 1024.0f;
-  float vin = vout / (R2/(R1+R2)); 
-  Serial.print("Eingangsspannung ");
-  Serial.print(vin,2);
-  Serial.println("V");
- 
-          // if there are incoming bytes available
+   // if there are incoming bytes available
           // from the server, read them and print them:
           int len = client.available();
           if (len > 0) {
@@ -112,18 +116,35 @@ void loop() {
     client.stop();
     }
 
-  
- delay(60000);  //1 Minute Intervall
-  if(vin<=12.00) {
-    doSteckdose(1);
+// ---------
 
-    delay(3600000);  //1Stunde warten
-    doSteckdose(0); //wieder ausschalten
+  if ((millis() - Zeitprev) > 10000) { //60 Sekunden warten
+    Zeitprev=millis();
+
+  float vout = (analogRead(SENSOR) * MAX_VIN) / 1024.0f;
+  float vin = vout / (R2/(R1+R2)); 
+  Serial.print("Eingangsspannung ");
+  Serial.print(vin,2);
+  Serial.println("V");
+  
+
+  if( (vin<12.40) && (sollSteckdoseStatus==0) ) {
+    Serial.println("Schalte EIN ");
+    doSteckdose(11); //einschalten 
+    Zeiteingeschaltet=millis();
+    sollSteckdoseStatus=1;
   }
 
+     
+ if ( (millis() - Zeiteingeschaltet > 30000) && (sollSteckdoseStatus==1) ) {
+    Serial.println("Schalte AUS ");
+    doSteckdose(10); //ausschalten
+    sollSteckdoseStatus=0;
+  }
 
   if(!isImNetz) {
     //Neustart des arduinos falls nicht im Netz
     softwareReset( WDTO_60MS);
   }
+    }
 }
