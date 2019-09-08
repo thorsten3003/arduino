@@ -1,5 +1,8 @@
 #include <SoftwareSerial.h>
-SoftwareSerial mySerial(10, 11);
+#define PIN_TX 10
+#define PIN_RX 11
+SoftwareSerial mySerial(PIN_TX,PIN_RX);
+
 void setup()
 {
 mySerial.begin(9600);   

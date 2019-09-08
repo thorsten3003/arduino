@@ -13,42 +13,36 @@ by jason
 #include <DFRobot_sim808.h>
 #include <SoftwareSerial.h>
 
-//#define PIN_TX    10
-//#define PIN_RX    11
-//SoftwareSerial mySerial(PIN_TX,PIN_RX);
-//DFRobot_SIM808 sim808(&mySerial);//Connect RX,TX,PWR,
+#define PIN_TX 10
+#define PIN_RX 11
+SoftwareSerial mySerial(PIN_TX,PIN_RX);
+DFRobot_SIM808 sim808(&mySerial);//Connect RX,TX,PWR,
 
 //make sure that the baud rate of SIM900 is 9600!
 //you can use the AT Command(AT+IPR=9600) to set it through SerialDebug
 
-DFRobot_SIM808 sim808(&Serial);
-
-char http_cmd[] = "GET /media/uploads/mbed_official/hello.txt HTTP/1.0\r\n\r\n";
+char http_cmd[] = "GET /wohnwagen/wwInsert.php?key=4e5rftuzg4e5rftuzg&U1=12.1&U2=12.1&LAT=%2242.48662%22&LON=%22-83.29399%22&Text=%22Das%20ist%20ein%20Beschreibender%20Eintrag%20f%C3%BCr%20den%20Datensatz%22 HTTP/1.0\r\n\r\n";
 char buffer[512];
 
-void setup(){
-  //mySerial.begin(9600);
+void setup()
+{
+  mySerial.begin(9600);
   Serial.begin(9600);
-  
-  //******** Initialize sim808 module *************
-  while(!sim808.init()) {
-      delay(1000);
-      Serial.print("Sim808 init error\r\n");
-  }
-  delay(3000);  
-    
-  //*********** Attempt DHCP *******************
-  while(!sim808.join(F("cmnet"))) {
-      Serial.println("Sim808 join network error");
-      delay(2000);
-  }
 
-  //************ Successful DHCP ****************
-  Serial.print("IP Address is ");
-  Serial.println(sim808.getIPAddress());
+  //******** Initialize sim808 module *************
+  while(!sim808.init())
+  {
+      Serial.print("Sim808 init error\r\n");
+      delay(1000);
+  }
+  delay(3000);
+
+  Serial.println("SIM Init success");
+ 
+
 
   //*********** Establish a TCP connection ************
-  if(!sim808.connect(TCP,"mbed.org", 80)) {
+  if(!sim808.connect(TCP,"https://www.tstratmann.de", 443)) {
       Serial.println("Connect error");
   }else{
       Serial.println("Connect mbed.org success");
