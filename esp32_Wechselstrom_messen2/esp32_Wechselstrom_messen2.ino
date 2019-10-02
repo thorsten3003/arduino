@@ -5,6 +5,11 @@
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 
+//WiFi Part
+const char* ssid     = "TS-EG";
+//const char* ssid     = "TS-DG-OG";
+const char* password = "DieMeeries";
+
 //Setup variables
 int numberOfSamples = 1000;
 
@@ -17,17 +22,13 @@ static bool sta_was_connected = false;
 int inPinI1 = 34;
 int inPinI2 = 35;
 int inPinI3 = 32;
+int inPinI4 = 33;
 
 //First Run Counter
 int firstrun = 0;
 
 //Power Calculation
 float PowerSum = 0;
-
-//WiFi Part
-//const char* ssid     = "TS-EG";
-const char* ssid     = "TS-DG-OG";
-const char* password = "DieMeeries";
 
 // CT: Voltage depends on current, burden resistor, and turns
 #define CT_BURDEN_RESISTOR    62
@@ -44,16 +45,16 @@ double ICAL = 1.08;
 double I_RATIO = (long double)CT_TURNS / CT_BURDEN_RESISTOR * 3.3 / 4096 * ICAL;
 
 //Filter variables 1
-double lastFilteredI, filteredI;
-double sqI,sumI;
-//Sample variables
-int lastSampleI,sampleI;
-
-//Filter variables 2
 double lastFilteredI1, filteredI1;
 double sqI1,sumI1;
 //Sample variables
 int lastSampleI1,sampleI1;
+
+//Filter variables 2
+double lastFilteredI2, filteredI2;
+double sqI2,sumI2;
+//Sample variables
+int lastSampleI2,sampleI2;
 
 //Filter variables 3
 double lastFilteredI3, filteredI3;
@@ -61,13 +62,21 @@ double sqI3,sumI3;
 //Sample variables
 int lastSampleI3,sampleI3;
 
+//Filter variables 4
+double lastFilteredI4, filteredI4;
+double sqI4,sumI4;
+//Sample variables
+int lastSampleI4,sampleI4;
+
 //Useful value variables
 double Irms1;
 double Irms2;
 double Irms3;
+double Irms4;
 double Power1;
 double Power2;
 double Power3;
+double Solar1;
 unsigned long timer;
 
 //EspClass ESPm;
@@ -106,6 +115,8 @@ void setup() {
   adcAttachPin(inPinI2);
   pinMode(inPinI3,INPUT);
   adcAttachPin(inPinI3);
+  pinMode(inPinI4,INPUT);
+  adcAttachPin(inPinI4);
  
   Serial.begin(115200);
   delay(500);
@@ -160,45 +171,11 @@ WiFi.onEvent(WiFiEvent);
 {
    
    //Used for offset removal
-   lastSampleI=sampleI;
-   
-   //Read in voltage and current samples.  
-   sampleI = analogRead(inPinI1);
- 
-   //Used for offset removal
-   lastFilteredI = filteredI;
- 
-   //Digital high pass filters to remove 1.6V DC offset.
-   filteredI = 0.9989 * (lastFilteredI+sampleI-lastSampleI);
-   
-   //Root-mean-square method current
-   //1) square current values
-   sqI = filteredI * filteredI;
-   //2) sum
-   sumI += sqI;
-   delay(0.00002);
-}
-
-//Calculation of the root of the mean of the voltage and current squared (rms)
-//Calibration coeficients applied.
-Irms1 = (I_RATIO * sqrt(sumI / numberOfSamples)) - 0.09;     // - 1
-if ((Irms1 < 0) || (firstrun < 2)){ Irms1 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI = 0;
-Power1 = Irms1 * VOLTAGE;
-
-Serial.println("Irms1:"+String(Irms1));
-
-//**************************************************************************
-//Phase2
- for (int n=0; n<numberOfSamples; n++)
-{
-   
-   //Used for offset removal
    lastSampleI1=sampleI1;
    
    //Read in voltage and current samples.  
-   sampleI1 = analogRead(inPinI2);
-
+   sampleI1 = analogRead(inPinI1);
+ 
    //Used for offset removal
    lastFilteredI1 = filteredI1;
  
@@ -215,9 +192,43 @@ Serial.println("Irms1:"+String(Irms1));
 
 //Calculation of the root of the mean of the voltage and current squared (rms)
 //Calibration coeficients applied.
-Irms2 = (I_RATIO * sqrt(sumI1 / numberOfSamples)) - 0.09 ;     // - 1.3;
-if ((Irms2 < 0) || (firstrun < 2)){ Irms2 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
+Irms1 = (I_RATIO * sqrt(sumI1 / numberOfSamples)) - 0.09;     // - 1
+if ((Irms1 < 0) || (firstrun < 2)){ Irms1 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
 sumI1 = 0;
+Power1 = Irms1 * VOLTAGE;
+
+Serial.println("Irms1:"+String(Irms1));
+
+//**************************************************************************
+//Phase2
+ for (int n=0; n<numberOfSamples; n++)
+{
+   
+   //Used for offset removal
+   lastSampleI2=sampleI2;
+   
+   //Read in voltage and current samples.  
+   sampleI2 = analogRead(inPinI2);
+
+   //Used for offset removal
+   lastFilteredI2 = filteredI2;
+ 
+   //Digital high pass filters to remove 1.6V DC offset.
+   filteredI2 = 0.9989 * (lastFilteredI2+sampleI2-lastSampleI2);
+   
+   //Root-mean-square method current
+   //1) square current values
+   sqI2 = filteredI2 * filteredI2;
+   //2) sum
+   sumI2 += sqI2;
+   delay(0.00002);
+}
+
+//Calculation of the root of the mean of the voltage and current squared (rms)
+//Calibration coeficients applied.
+Irms2 = (I_RATIO * sqrt(sumI2 / numberOfSamples)) - 0.09 ;     // - 1.3;
+if ((Irms2 < 0) || (firstrun < 2)){ Irms2 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
+sumI2 = 0;
 Power2 = Irms2 * VOLTAGE;
 
 Serial.println("Irms2:"+String(Irms2));
@@ -256,11 +267,45 @@ Power3 = Irms3 * VOLTAGE;
 
 Serial.println("Irms3:"+String(Irms3));
 
-Serial.println("Summe:"+String(Irms1+Irms2+Irms3));
-Serial.println("PowerSum(A):"+String(PowerSum));
+//**************************************************************************
+//Solar1
+ for (int n=0; n<numberOfSamples; n++)
+{
+   
+   //Used for offset removal
+   lastSampleI4=sampleI4;
+   
+   //Read in voltage and current samples.  
+   sampleI4 = analogRead(inPinI4);
+
+   //Used for offset removal
+   lastFilteredI4 = filteredI4;
+ 
+   //Digital high pass filters to remove 1.6V DC offset.
+   filteredI4 = 0.9989 * (lastFilteredI4+sampleI4-lastSampleI4);
+   
+   //Root-mean-square method current
+   //1) square current values
+   sqI4 = filteredI4 * filteredI4;
+   //2) sum
+   sumI4 += sqI4;
+   delay(0.0002);
+}
+
+//Calculation of the root of the mean of the voltage and current squared (rms)
+//Calibration coeficients applied.
+Irms4 = (I_RATIO * sqrt(sumI4 / numberOfSamples)) - 0.09;     // - 1.3;
+if ((Irms4 < 0) || (firstrun < 2)){ Irms4 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
+sumI4 = 0;
+Solar1 = Irms4 * VOLTAGE;
+
+Serial.println("Irms4:"+String(Irms4));
+//**************************************************************************
+
+Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
 //Calculate Power
 PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
-
+Serial.println("PowerSum(W):"+String(PowerSum));
 
 //Check if WiFi is here
 //Automatically reconnect the ESP32 if the WiFi Router is not there...
@@ -283,12 +328,10 @@ if (WiFi.status() != WL_CONNECTED)
     // We now create a URI for the request
     // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
     String url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
-    //url = url + "Phase1:" + Irms1 + ",";
-    //url = url + "Phase2:" + Irms2 + ",";
-    //url = url + "Phase3:" + Irms3 + ",";
     url = url + "Power1:" + Power1 + ",";
     url = url + "Power2:" + Power2 + ",";
     url = url + "Power3:" + Power3 + ",";
+    url = url + "Solar1:" + Solar1 + ",";    
     url = url + "PowerSum:" + PowerSum + "}";
 
     Serial.print("Requesting URL: ");

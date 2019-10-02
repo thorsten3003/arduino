@@ -3,20 +3,12 @@
 // WiFi includes
  #include <WiFi.h>
 
- // OTA Includes
-
  #include <ArduinoOTA.h>
 
- const char *ssid         = "TS-DG-OG";
- const char *ssid1         = "TS-EG";
+ const char *ssid1         = "TS-DG-OG";
+ const char *ssid         = "TS-EG";
  const char *password     = "DieMeeries";
-
-// Include custom images
-#include "images.h"
  
-// Include the correct display library
-// For a connection via I2C using Wire include
-#include <Wire.h>  // Only needed for Arduino 1.6.5 and earlier
 #include "SSD1306Wire.h" // legacy include: `#include "SSD1306.h"`
 // or #include "SH1106Wire.h", legacy include: `#include "SH1106.h"`
 // For a connection via I2C using brzo_i2c (must be installed) include
@@ -73,6 +65,13 @@ void setup() {
          display.display();
     delay ( 10 );
   }
+  display.clear();
+  // Align text vertical/horizontal center
+  display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(5,5 , "IP-Adresse: " + WiFi.localIP().toString());
+  display.drawString(10,5 , "IP-Adresse:\n" + WiFi.localIP().toString());
+  display.display();
 display.clear();
 
   ArduinoOTA.begin();
@@ -106,106 +105,58 @@ void infoAnzeigen() {
   display.drawString(10,5 , "IP-Adresse:\n" + WiFi.localIP().toString());
   display.display();
 }
-void drawFontFaceDemo() {
-    // Font Demo1
-    // create more fonts at http://oleddisplay.squix.ch/
-    display.setTextAlignment(TEXT_ALIGN_LEFT);
-    display.setFont(ArialMT_Plain_10);
-    display.drawString(0, 0, "Hello world");
-    display.setFont(ArialMT_Plain_16);
-    display.drawString(0, 10, "Hello world");
-    display.setFont(ArialMT_Plain_24);
-    display.drawString(0, 26, "Hello world");
-}
 
-void drawTextFlowDemo() {
-    display.setFont(ArialMT_Plain_10);
-    display.setTextAlignment(TEXT_ALIGN_LEFT);
-    display.drawStringMaxWidth(0, 0, 128,
-      "Lorem ipsum\n dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore." );
-}
 
-void drawTextAlignmentDemo() {
-    // Text alignment demo
-  display.setFont(ArialMT_Plain_10);
 
-  // The coordinates define the left starting point of the text
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.drawString(0, 10, "Left aligned (0,10)");
 
-  // The coordinates define the center of the text
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.drawString(64, 22, "Center aligned (64,22)");
 
-  // The coordinates define the right end of the text
-  display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(128, 33, "Right aligned (128,33)");
-}
-
-void drawRectDemo() {
-      // Draw a pixel at given position
-    for (int i = 0; i < 10; i++) {
-      display.setPixel(i, i);
-      display.setPixel(10 - i, i);
-    }
-    display.drawRect(12, 12, 20, 20);
-
-    // Fill the rectangle
-    display.fillRect(14, 14, 17, 17);
-
-    // Draw a line horizontally
-    display.drawHorizontalLine(0, 40, 20);
-
-    // Draw a line horizontally
-    display.drawVerticalLine(40, 0, 20);
-}
-
-void drawCircleDemo() {
-  for (int i=1; i < 8; i++) {
-    display.setColor(WHITE);
-    display.drawCircle(32, 32, i*3);
-    if (i % 2 == 0) {
-      display.setColor(BLACK);
-    }
-    display.fillCircle(96, 32, 32 - i* 3);
-  }
-}
-
-void drawProgressBarDemo() {
-  int progress = (counter / 5) % 100;
-  // draw the progress bar
-  display.drawProgressBar(0, 32, 120, 10, progress);
-
-  // draw the percentage as String
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.drawString(64, 15, String(progress) + "%");
-}
-
-void drawImageDemo() {
-    // see http://blog.squix.org/2015/05/esp8266-nodemcu-how-to-create-xbm.html
-    // on how to create xbm files
-    display.drawXbm(34, 14, WiFi_Logo_width, WiFi_Logo_height, WiFi_Logo_bits);
-}
-
-Demo demos[] = {drawFontFaceDemo, drawTextFlowDemo, drawTextAlignmentDemo, drawRectDemo, drawCircleDemo, drawProgressBarDemo, drawImageDemo};
-int demoLength = (sizeof(demos) / sizeof(Demo));
-long timeSinceLastModeSwitch = 0;
 void loop() {
+ // scanNetworks();
   ArduinoOTA.handle();
-  // clear the display
-  display.clear();
-  // draw the current demo method
-  demos[demoMode]();
+//  timer = millis();
+  
+  //Check if WiFi is here
+  //Automatically reconnect the ESP32 if the WiFi Router is not there...
+  if (WiFi.status() != WL_CONNECTED)
+   {
+      WiFi.onEvent(WiFiEvent);
+    //  WIFI_Connect();
+    }  //Wifi WatchDog
+  WiFi.onEvent(WiFiEvent);
+  
+ 
+  
 
-  display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(10, 128, String(millis()));
-  // write the buffer to the display
-  display.display();
 
-  if (millis() - timeSinceLastModeSwitch > DEMO_DURATION) {
-    demoMode = (demoMode + 1)  % demoLength;
-    timeSinceLastModeSwitch = millis();
+
+
+
+
+}
+
+//Wifi Watchdog
+void WiFiEvent(WiFiEvent_t event) {
+  Serial.printf("[WiFi-event] event: %d  - ", event);
+  switch(event) {
+  case SYSTEM_EVENT_STA_GOT_IP:
+      Serial.println("WiFi connected");
+      Serial.print("IP address: "); Serial.println(WiFi.localIP());
+      break;
+  case SYSTEM_EVENT_STA_DISCONNECTED:
+      Serial.println("WiFi lost connection");
+      WiFi.begin();   // <<<<<<<<<<<  added  <<<<<<<<<<<<<<<
+      ESP.restart();
+      break;
+  case SYSTEM_EVENT_STA_START:
+      Serial.println("ESP32 station start");
+      break;
+  case SYSTEM_EVENT_STA_CONNECTED:
+      Serial.println("ESP32 station connected to AP");
+      break;
+  case SYSTEM_EVENT_STA_LOST_IP:
+      Serial.println("ESP32 Lost IP");
+      WiFi.begin();   // <<<<<<<<<<<  added  <<<<<<<<<<<<<<<
+      ESP.restart();
+      break;
   }
-  counter++;
-  delay(10);
 }
