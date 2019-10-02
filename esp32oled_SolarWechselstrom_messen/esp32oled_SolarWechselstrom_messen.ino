@@ -1,4 +1,6 @@
 /*
+ * Board: Wemos Lolin32 oder TTGO LoRa32-OLED-V1
+ *   WiFi.mode(WIFI_STA);
  * Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
  */
 #include <Arduino.h>
@@ -13,7 +15,7 @@ int numberOfSamples = 1000;
 const char* host = "v92140.1blu.de";
 
 //WiFi Watchdog
-static bool sta_was_connected = false;
+//static bool sta_was_connected = false;
 
 //Set Voltage and current input pins
 int inPinI1 = 34;
@@ -28,6 +30,7 @@ float PowerSum = 0;
 
 //WiFi Part
 const char* ssid     = "TS-EG";
+//const char* ssid     = "TS-DG-OG";
 const char* password = "DieMeeries";
 
 // CT: Voltage depends on current, burden resistor, and turns
@@ -215,8 +218,8 @@ WiFi.onEvent(WiFiEvent);
 Irms1 = (I_RATIO * sqrt(sumI / numberOfSamples)) - 0.09;     // - 1
 if ((Irms1 < 0) || (firstrun < 2)){ Irms1 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
 sumI = 0;
-//Solar1 = Irms1 * VOLTAGE;
-Solar1=300;
+Solar1 = Irms1 * VOLTAGE;
+//Solar1=300;
 
 Serial.println("Irms1:"+String(Irms1));
 
