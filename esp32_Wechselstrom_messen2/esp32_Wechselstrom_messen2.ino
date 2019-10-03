@@ -1,4 +1,5 @@
 /*
+ * Board: ESP32 Dev Module
  * Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
  */
 #include <Arduino.h>
@@ -26,9 +27,6 @@ int inPinI4 = 33;
 
 //First Run Counter
 int firstrun = 0;
-
-//Power Calculation
-float PowerSum = 0;
 
 // CT: Voltage depends on current, burden resistor, and turns
 #define CT_BURDEN_RESISTOR    62
@@ -77,6 +75,10 @@ double Power1;
 double Power2;
 double Power3;
 double Solar1;
+double PowerMinusSolar;
+// float PowerSum = 0;
+double PowerSum = 0;
+
 unsigned long timer;
 
 //EspClass ESPm;
@@ -298,6 +300,8 @@ Irms4 = (I_RATIO * sqrt(sumI4 / numberOfSamples)) - 0.09;     // - 1.3;
 if ((Irms4 < 0) || (firstrun < 2)){ Irms4 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
 sumI4 = 0;
 Solar1 = Irms4 * VOLTAGE;
+Solar1 = Solar1 - 8;
+if ( Solar1 < 0 ) Solar1 = 0;
 
 Serial.println("Irms4:"+String(Irms4));
 //**************************************************************************
@@ -306,6 +310,10 @@ Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
 //Calculate Power
 PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
 Serial.println("PowerSum(W):"+String(PowerSum));
+
+//Calculate Power minus Solar1
+PowerMinusSolar = PowerSum - Solar1;
+Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
 
 //Check if WiFi is here
 //Automatically reconnect the ESP32 if the WiFi Router is not there...
@@ -332,6 +340,7 @@ if (WiFi.status() != WL_CONNECTED)
     url = url + "Power2:" + Power2 + ",";
     url = url + "Power3:" + Power3 + ",";
     url = url + "Solar1:" + Solar1 + ",";    
+    url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
     url = url + "PowerSum:" + PowerSum + "}";
 
     Serial.print("Requesting URL: ");
