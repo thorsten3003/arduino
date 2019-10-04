@@ -271,49 +271,50 @@ Serial.println("Irms3:"+String(Irms3));
 
 //**************************************************************************
 //Solar1
- for (int n=0; n<numberOfSamples; n++)
-{
-   
-   //Used for offset removal
-   lastSampleI4=sampleI4;
-   
-   //Read in voltage and current samples.  
-   sampleI4 = analogRead(inPinI4);
-
-   //Used for offset removal
-   lastFilteredI4 = filteredI4;
- 
-   //Digital high pass filters to remove 1.6V DC offset.
-   filteredI4 = 0.9989 * (lastFilteredI4+sampleI4-lastSampleI4);
-   
-   //Root-mean-square method current
-   //1) square current values
-   sqI4 = filteredI4 * filteredI4;
-   //2) sum
-   sumI4 += sqI4;
-   delay(0.0002);
-}
-
-//Calculation of the root of the mean of the voltage and current squared (rms)
-//Calibration coeficients applied.
-Irms4 = (I_RATIO * sqrt(sumI4 / numberOfSamples)) - 0.09;     // - 1.3;
-if ((Irms4 < 0) || (firstrun < 2)){ Irms4 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI4 = 0;
-Solar1 = Irms4 * VOLTAGE;
-Solar1 = Solar1 - 8;
-if ( Solar1 < 0 ) Solar1 = 0;
-
-Serial.println("Irms4:"+String(Irms4));
-//**************************************************************************
-
-Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
-//Calculate Power
-PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
-Serial.println("PowerSum(W):"+String(PowerSum));
-
-//Calculate Power minus Solar1
-PowerMinusSolar = PowerSum - Solar1;
-Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
+// for (int n=0; n<numberOfSamples; n++)
+//{
+//   
+//   //Used for offset removal
+//   lastSampleI4=sampleI4;
+//   
+//   //Read in voltage and current samples.  
+//   sampleI4 = analogRead(inPinI4);
+//
+//   //Used for offset removal
+//   lastFilteredI4 = filteredI4;
+// 
+//   //Digital high pass filters to remove 1.6V DC offset.
+//   filteredI4 = 0.9989 * (lastFilteredI4+sampleI4-lastSampleI4);
+//   
+//   //Root-mean-square method current
+//   //1) square current values
+//   sqI4 = filteredI4 * filteredI4;
+//   //2) sum
+//   sumI4 += sqI4;
+//   delay(0.0002);
+//}
+//
+////Calculation of the root of the mean of the voltage and current squared (rms)
+////Calibration coeficients applied.
+//Irms4 = (I_RATIO * sqrt(sumI4 / numberOfSamples)) - 0.09;     // - 1.3;
+//if ((Irms4 < 0) || (firstrun < 2)){ Irms4 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
+//sumI4 = 0;
+//Solar1 = Irms4 * VOLTAGE;
+//Solar1 = Solar1 - 8;
+//if ( Solar1 < 0 ) Solar1 = 0;
+//if ( Solar1 > 310 ) Solar1 = 310;
+//
+//Serial.println("Irms4:"+String(Irms4));
+////**************************************************************************
+//
+//Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
+////Calculate Power
+//PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
+//Serial.println("PowerSum(W):"+String(PowerSum));
+//
+////Calculate Power minus Solar1
+//PowerMinusSolar = PowerSum - Solar1;
+//Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
 
 //Check if WiFi is here
 //Automatically reconnect the ESP32 if the WiFi Router is not there...
@@ -339,8 +340,8 @@ if (WiFi.status() != WL_CONNECTED)
     url = url + "Power1:" + Power1 + ",";
     url = url + "Power2:" + Power2 + ",";
     url = url + "Power3:" + Power3 + ",";
-    url = url + "Solar1:" + Solar1 + ",";    
-    url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
+   // url = url + "Solar1:" + Solar1 + ",";    
+   // url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
     url = url + "PowerSum:" + PowerSum + "}";
 
     Serial.print("Requesting URL: ");
