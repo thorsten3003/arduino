@@ -29,8 +29,8 @@ int firstrun = 0;
 float PowerSum = 0;
 
 //WiFi Part
-const char* ssid     = "TS-EG";
-//const char* ssid     = "TS-DG-OG";
+//const char* ssid     = "TS-EG";
+const char* ssid     = "TS-DG-OG";
 const char* password = "DieMeeries";
 
 // CT: Voltage depends on current, burden resistor, and turns

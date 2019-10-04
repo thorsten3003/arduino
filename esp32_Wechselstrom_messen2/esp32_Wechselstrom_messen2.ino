@@ -307,11 +307,11 @@ Serial.println("Irms3:"+String(Irms3));
 //Serial.println("Irms4:"+String(Irms4));
 ////**************************************************************************
 //
-//Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
-////Calculate Power
-//PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
-//Serial.println("PowerSum(W):"+String(PowerSum));
-//
+Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
+//Calculate Power
+PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
+Serial.println("PowerSum(W):"+String(PowerSum));
+
 ////Calculate Power minus Solar1
 //PowerMinusSolar = PowerSum - Solar1;
 //Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
