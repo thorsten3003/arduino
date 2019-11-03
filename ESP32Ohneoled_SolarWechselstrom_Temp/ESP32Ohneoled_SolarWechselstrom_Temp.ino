@@ -5,21 +5,16 @@
  */
 #include <Arduino.h>
 #include "WiFi.h"
-#include "SSD1306Wire.h"
-#include <ArduinoOTA.h>
-SSD1306Wire  display(0x3c, 5, 4);
 #include "DHT.h"                
+#include <ArduinoOTA.h>
 
 //Setup variables
-int numberOfSamples = 5000;
+int numberOfSamples = 1000;
 
 const char* host = "v92140.1blu.de";
 
-
 //Set Voltage and current input pins
 int inPinI1 = 34;
-int inPinI2 = 35;
-int inPinI3 = 32;
 
 //First Run Counter
 int firstrun = 0;
@@ -51,10 +46,10 @@ double ICAL = 1.08;
 double I_RATIO = (long double)CT_TURNS / CT_BURDEN_RESISTOR * 3.3 / 4096 * ICAL;
 
 //Filter variables 1
-double lastFilteredI, filteredI;
-double sqI,sumI;
+double lastFilteredI1, filteredI1;
+double sqI1,sumI1;
 //Sample variables
-int lastSampleI,sampleI;
+int lastSampleI1,sampleI1;
 
 
 //Useful value variables
@@ -70,10 +65,6 @@ void WIFI_Connect()
 {
   WiFi.disconnect();
   Serial.println("Connecting WIFI...");
-  display.setFont(ArialMT_Plain_10);
-  display.clear();
-  display.drawString(0,0 , "Connecting WIFI..."); 
-  display.display();
      
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -86,91 +77,55 @@ void WIFI_Connect()
       delay ( 250 );
     }
   }
-  digitalWrite(2,0);
 }
 
 
 void setup() {
   dht.begin();
-  //Set Information LED
-  pinMode(2, OUTPUT);
   //Set Analog Inputs
   pinMode(inPinI1,INPUT);
   adcAttachPin(inPinI1);
-  pinMode(inPinI2,INPUT);
-  adcAttachPin(inPinI2);
-  pinMode(inPinI3,INPUT);
-  adcAttachPin(inPinI3);
- 
+
   Serial.begin(115200);
-  display.init();
-  display.flipScreenVertically();
-  display.setContrast(255);
-  display.setFont(ArialMT_Plain_10);
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
   delay(500);
   
   //WiFi Part
   WIFI_Connect();
-              // OTA ---------->
+            // OTA ---------->
               // Port defaults to 8266
               // ArduinoOTA.setPort(8266);
             
               // Hostname defaults to esp8266-[ChipID]
-              ArduinoOTA.setHostname("ESP32oled_SoloarWechselstrom_messen");
+              ArduinoOTA.setHostname("ESP32Ohneoled_SolarWechselstrom_Temp");
             
               // No authentication by default
-              ArduinoOTA.setPassword((const char *)"ESP32oled_SoloarWechselstrom_messen");
+              ArduinoOTA.setPassword((const char *)"ESP32Ohneoled_SolarWechselstrom_Temp");
             
               ArduinoOTA.onStart([]() {
                 Serial.println("OTA Start");
-                display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA Update");
-                display.display();
               });
               ArduinoOTA.onEnd([]() {
                 Serial.println("OTA End");
-                display.clear();
-                display.setFont(ArialMT_Plain_10);
-                display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-                display.drawString(display.getWidth()/2, display.getHeight()/2, "Restart");
-                display.display();
               });
               ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
                 Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
-                display.drawProgressBar(4, 32, 120, 8, progress / (total / 100) );
-                display.display();
               });
               ArduinoOTA.onError([](ota_error_t error) {
                 Serial.printf("Error[%u]: ", error);
                 if (error == OTA_AUTH_ERROR) {
                   Serial.println("Auth Failed");
-                      display.clear();
-                      display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA Auth Failed");
-                      display.display();
                 }
                 else if (error == OTA_BEGIN_ERROR) {
                   Serial.println("Begin Failed");
-                      display.clear();
-                      display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA Begin Failed");
-                      display.display();
                 }
                 else if (error == OTA_CONNECT_ERROR) {
                   Serial.println("Connect Failed");
-                      display.clear();
-                      display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA Connect Failed");
-                      display.display();
                 }
                 else if (error == OTA_RECEIVE_ERROR) {
                   Serial.println("Receive Failed");
-                      display.clear();
-                      display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA Receive Failed");
-                      display.display();
                 }
                 else if (error == OTA_END_ERROR) {
                   Serial.println("End Failed");
-                      display.clear();
-                      display.drawString(display.getWidth()/2, display.getHeight()/2 - 10, "OTA End Failed");
-                      display.display();
                 }
               });
               ArduinoOTA.begin();
@@ -181,7 +136,7 @@ void setup() {
 }
 
 void loop() {
-ArduinoOTA.handle();
+  ArduinoOTA.handle();
 timer = millis();
 
 //Wifi WatchDog
@@ -211,32 +166,31 @@ if (isnan(h) || isnan(t)) {
 {
    
    //Used for offset removal
-   lastSampleI=sampleI;
+   lastSampleI1=sampleI1;
    
    //Read in voltage and current samples.  
-   sampleI = analogRead(inPinI1);
+   sampleI1 = analogRead(inPinI1);
  
    //Used for offset removal
-   lastFilteredI = filteredI;
+   lastFilteredI1 = filteredI1;
  
    //Digital high pass filters to remove 1.6V DC offset.
-   filteredI = 0.9989 * (lastFilteredI+sampleI-lastSampleI);
+   filteredI1 = 0.9989 * (lastFilteredI1+sampleI1-lastSampleI1);
    
    //Root-mean-square method current
    //1) square current values
-   sqI = filteredI * filteredI;
+   sqI1 = filteredI1 * filteredI1;
    //2) sum
-   sumI += sqI;
+   sumI1 += sqI1;
    delay(0.00002);
 }
 
 //Calculation of the root of the mean of the voltage and current squared (rms)
 //Calibration coeficients applied.
-Irms1 = (I_RATIO * sqrt(sumI / numberOfSamples)) - 0.09;     // - 1
+Irms1 = (I_RATIO * sqrt(sumI1 / numberOfSamples)) - 0.35;     // - 1
 if ((Irms1 < 0) || (firstrun < 2)){ Irms1 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI = 0;
+sumI1 = 0;
 Solar1 = Irms1 * VOLTAGE;
-//Solar1=300;
 
 Serial.println("Irms1:"+String(Irms1));
 
@@ -264,20 +218,14 @@ if (WiFi.status() != WL_CONNECTED)
     // We now create a URI for the request
     // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
     String url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
-    url = url + "Solar1:" + Solar1 + "}";
+    url = url + "Solar1:" + Solar1 + ",";
+    url = url + "Temp_DG_links:" + t + ",";
+    url = url + "Luftfeuchte_DG_links:" + h + "}";
+
     
     Serial.print("Requesting URL: ");
     Serial.println(url);
      
-     display.setFont(ArialMT_Plain_10);
-     display.clear();
-     display.drawString(0,0 , "SSID: " + String( WiFi.SSID()) ); 
-     display.drawString(0,10 , "Signal: " + String( WiFi.RSSI()) );
-     display.drawString(0,20 , "IP-Adresse: " + WiFi.localIP().toString());
-
-     display.setFont(ArialMT_Plain_16);
-     display.drawString(0,40 , String(Solar1) + " Watt");
-     display.display();
         
     // This will send the request to the server
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
