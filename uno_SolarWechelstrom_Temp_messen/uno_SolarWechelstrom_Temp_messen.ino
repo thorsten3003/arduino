@@ -45,7 +45,7 @@ double SensorSpannung = 0;
 double Ampere = 0;
 double Solar1;
 double Volt = 230;
-int numberOfSamples = 5000;
+int numberOfSamples = 50;
 
 unsigned long timer;
 unsigned long loop_timer;
@@ -136,12 +136,12 @@ void loop() {
     Solar1 = (Volt * Ampere) -7; // Solar1 in Watt minus Korrekturwert im Leerlauf gemessen
     
     // Ausgabe der Ergebnisse am Seriellen Monitor
-    //Serial.print("Sensorwert = " ); // Ausgabe des reinen Sensorwertes
-    //Serial.print(sensorwert);
- //   Serial.print("\t Sensorspannung in mV = "); // Zeigt die Sensorspannung an
-  //  Serial.println(SensorSpannung, 3); // Die "3" hinter dem Komma erzeugt drei Nachkommastellen
-//    Serial.print("\t Ampere = "); // shows the voltage measured
-//    Serial.println(Ampere, 3); // Die "3" hinter dem Komma erzeugt drei Nachkommastellen
+    Serial.print("Sensorwert = " ); // Ausgabe des reinen Sensorwertes
+    Serial.print(sensorwert);
+    Serial.print("\t Sensorspannung in mV = "); // Zeigt die Sensorspannung an
+    Serial.print(SensorSpannung, 3); // Die "3" hinter dem Komma erzeugt drei Nachkommastellen
+    Serial.print("\t Ampere = "); // shows the voltage measured
+    Serial.println(Ampere, 3); // Die "3" hinter dem Komma erzeugt drei Nachkommastellen
 
     SolarSum = SolarSum + Solar1;
     delay(0.00002);

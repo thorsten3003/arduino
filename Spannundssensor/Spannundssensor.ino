@@ -1,5 +1,6 @@
 /*
   Web client
+  Voltage Sensor http://henrysbench.capnfatz.com/henrys-bench/arduino-voltage-measurements/arduino-25v-voltage-sensor-module-user-manual/
  */
 #define SENSOR A1
 const float R1 = 30000.0f; // Der Widerstand R1 hat eine größe von 30 kOhm
