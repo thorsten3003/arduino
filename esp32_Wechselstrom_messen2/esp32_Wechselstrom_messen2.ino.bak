@@ -4,6 +4,12 @@
  * emoncms: feedlist: http://v92140.1blu.de/energie/emoncms/feed/list.json
  * http://v92140.1blu.de/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41
  * {"time":1579179242,"value":418.31}
+
+Solar1json = "{"time":1579179242,"value":418.31}";
+ int Doppelpunkt = Solar1json.lastIndexOf('}');
+ int Klammer = Solar1json.lastIndexOf(':');
+ Solar1AbfrageWert = stringOne.substring(Doppelpunkt,Klammer)
+
  */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -81,7 +87,6 @@ double Solar1;
 double PowerMinusSolar;
 // float PowerSum = 0;
 double PowerSum = 0;
-double Solar1AbfrageWert = 0;
 
 unsigned long timer;
 
@@ -311,7 +316,14 @@ Serial.println("Irms3:"+String(Irms3));
 //Serial.println("Irms4:"+String(Irms4));
 ////**************************************************************************
 //
+Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
+//Calculate Power
+PowerSum = ((Irms1+Irms2+Irms3) * VOLTAGE);
+Serial.println("PowerSum(W):"+String(PowerSum));
 
+////Calculate Power minus Solar1
+//PowerMinusSolar = PowerSum - Solar1;
+//Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
 
 //Check if WiFi is here
 //Automatically reconnect the ESP32 if the WiFi Router is not there...
@@ -331,49 +343,6 @@ if (WiFi.status() != WL_CONNECTED)
         Serial.println("connection failed");
         return;
     }
-
-///////////////////////////////////
-
-
- 
-    String url = "/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41"
-    // This will send the request to the server
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-    unsigned long timeout = millis();
-    while (client.available() == 0) {
-        if (millis() - timeout > 5000) {
-            Serial.println(">>> Client Timeout !");
-            client.stop();
-            return;
-        }
-    }
-
-    // Read all the lines of the reply from server and print them to Serial
-    while(client.available()) {
-        String line = client.readStringUntil('\r');
-        Serial.print(line);
-    }
-
-     //"{"time":1579179242,"value":418.31}";
-    int Doppelpunkt = line.lastIndexOf('}');
-    int Klammer = line.lastIndexOf(':');
-    Solar1AbfrageWert = line.substring(Doppelpunkt,Klammer);
-    if( Power1 < Solar1AbfrageWert ) {
-        Power1 = Power1 * -1;
-    }
-    Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
-    //Calculate Power
-    PowerSum = Power1 + Power2 + Power3;
-    Serial.println("PowerSum(W):"+String(PowerSum));
-
-////Calculate Power minus Solar1
-PowerMinusSolar = PowerSum - Solar1AbfrageWert;
-Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
-
-
-
     // We now create a URI for the request
     // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
     String url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
@@ -381,7 +350,7 @@ Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
     url = url + "Power2:" + Power2 + ",";
     url = url + "Power3:" + Power3 + ",";
    // url = url + "Solar1:" + Solar1 + ",";    
-    url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
+   // url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
     url = url + "PowerSum:" + PowerSum + "}";
 
     Serial.print("Requesting URL: ");
@@ -398,8 +367,16 @@ Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
             client.stop();
             return;
         }
-    }   
-  }
+    }
+
+    /*
+    // Read all the lines of the reply from server and print them to Serial
+    while(client.available()) {
+        String line = client.readStringUntil('\r');
+        Serial.print(line);
+    }*/
+   
+    }
  
   if (firstrun <= 2) {firstrun++;}; //Counter for Trash Data
   delay(1000);
