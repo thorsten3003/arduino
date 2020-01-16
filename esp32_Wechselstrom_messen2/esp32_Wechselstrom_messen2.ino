@@ -336,7 +336,7 @@ if (WiFi.status() != WL_CONNECTED)
 
 
  
-    String url = "/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41"
+    String url = "/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41";
     // This will send the request to the server
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" +
@@ -349,17 +349,17 @@ if (WiFi.status() != WL_CONNECTED)
             return;
         }
     }
-
+    String line;
     // Read all the lines of the reply from server and print them to Serial
     while(client.available()) {
-        String line = client.readStringUntil('\r');
+        line = client.readStringUntil('\r');
         Serial.print(line);
     }
 
      //"{"time":1579179242,"value":418.31}";
     int Doppelpunkt = line.lastIndexOf('}');
     int Klammer = line.lastIndexOf(':');
-    Solar1AbfrageWert = line.substring(Doppelpunkt,Klammer);
+    String Wert = line.substring(Doppelpunkt,Klammer);
     if( Power1 < Solar1AbfrageWert ) {
         Power1 = Power1 * -1;
     }
@@ -376,11 +376,10 @@ Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
 
     // We now create a URI for the request
     // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
-    String url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
+    url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
     url = url + "Power1:" + Power1 + ",";
     url = url + "Power2:" + Power2 + ",";
-    url = url + "Power3:" + Power3 + ",";
-   // url = url + "Solar1:" + Solar1 + ",";    
+    url = url + "Power3:" + Power3 + ",";   
     url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
     url = url + "PowerSum:" + PowerSum + "}";
 
@@ -391,7 +390,7 @@ Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" +
                  "Connection: close\r\n\r\n");
-    unsigned long timeout = millis();
+
     while (client.available() == 0) {
         if (millis() - timeout > 5000) {
             Serial.println(">>> Client Timeout !");
