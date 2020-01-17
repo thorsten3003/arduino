@@ -59,12 +59,14 @@ void loop()
     Sensorsumme = Sensorsumme + Sensorwert;
   }
   Spannung = Sensorsumme / NumberOfSamples  * 0.01325 ;
-  
- /* Serial.print("INPUT V= ");
+*/
+    Sensorwert = analogRead(Sensor);
+    Spannung = Sensorwert * 0.01325 ;
+  Serial.print("INPUT V= ");
   Serial.println(Spannung, 1);
   Serial.print("Value= ");
-  Serial.println(Sensorsumme);
-*/
+  Serial.println(Sensorwert);
+
 
 
   // Check if a client has connected
@@ -175,6 +177,9 @@ void loop()
     sResponse += "<h1>Demo f&uumlr ESP8266 Access Point</h1>";
     sResponse += "Funktion 1 schaltet GPIO2 und erzeugt eine serielle Ausgabe.<BR>";
     sResponse += "Funktion 2 erzeugt nur eine serielle Ausgabe.<BR>";
+    
+    sResponse += "Spannung= ";
+    sResponse += Spannung;
     sResponse += "<FONT SIZE=+1>";
     sResponse += "<p>Funktion 1 <a href=\"?pin=FUNCTION1ON\"><button>einschalten</button></a>&nbsp;<a href=\"?pin=FUNCTION1OFF\"><button>ausschalten</button></a></p>";
     sResponse += "<p>Funktion 2 <a href=\"?pin=FUNCTION2ON\"><button>einschalten</button></a>&nbsp;<a href=\"?pin=FUNCTION2OFF\"><button>ausschalten</button></a></p>";
