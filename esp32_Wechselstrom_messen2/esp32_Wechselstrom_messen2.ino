@@ -1,10 +1,10 @@
 /*
- * Board: ESP32 Dev Module
- * Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
- * emoncms: feedlist: http://v92140.1blu.de/energie/emoncms/feed/list.json
- * http://v92140.1blu.de/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41
- * {"time":1579179242,"value":418.31}
- */
+   Board: ESP32 Dev Module
+   Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
+   emoncms: feedlist: http://v92140.1blu.de/energie/emoncms/feed/list.json
+   http://v92140.1blu.de/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41
+   {"time":1579179242,"value":418.31}
+*/
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
@@ -47,27 +47,27 @@ double I_RATIO = (long double)CT_TURNS / CT_BURDEN_RESISTOR * 3.3 / 4096 * ICAL;
 
 //Filter variables 1
 double lastFilteredI1, filteredI1;
-double sqI1,sumI1;
+double sqI1, sumI1;
 //Sample variables
-int lastSampleI1,sampleI1;
+int lastSampleI1, sampleI1;
 
 //Filter variables 2
 double lastFilteredI2, filteredI2;
-double sqI2,sumI2;
+double sqI2, sumI2;
 //Sample variables
-int lastSampleI2,sampleI2;
+int lastSampleI2, sampleI2;
 
 //Filter variables 3
 double lastFilteredI3, filteredI3;
-double sqI3,sumI3;
+double sqI3, sumI3;
 //Sample variables
-int lastSampleI3,sampleI3;
+int lastSampleI3, sampleI3;
 
 //Filter variables 4
 double lastFilteredI4, filteredI4;
-double sqI4,sumI4;
+double sqI4, sumI4;
 //Sample variables
-int lastSampleI4,sampleI4;
+int lastSampleI4, sampleI4;
 
 //Useful value variables
 double Irms1;
@@ -84,6 +84,7 @@ double PowerSum = 0;
 double Solar1AbfrageWert = 0;
 
 unsigned long timer;
+unsigned long lasttimer = 0;
 
 //EspClass ESPm;
 String url = "";
@@ -91,23 +92,23 @@ String url = "";
 //WiFi
 void WIFI_Connect()
 {
-  digitalWrite(2,1);
+  digitalWrite(2, 1);
   WiFi.disconnect();
   Serial.println("Booting Sketch...");
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin(ssid, password);
-    // Wait for connection
+  // Wait for connection
   for (int i = 0; i < 25; i++)
   {
     if ( WiFi.status() != WL_CONNECTED ) {
       delay ( 250 );
-      digitalWrite(2,0);
+      digitalWrite(2, 0);
       Serial.print ( "." );
       delay ( 250 );
-      digitalWrite(2,1);
+      digitalWrite(2, 1);
     }
   }
-  digitalWrite(2,0);
+  digitalWrite(2, 0);
 }
 
 
@@ -115,316 +116,300 @@ void setup() {
   //Set Information LED
   pinMode(2, OUTPUT);
   //Set Analog Inputs
-  pinMode(inPinI1,INPUT);
+  pinMode(inPinI1, INPUT);
   adcAttachPin(inPinI1);
-  pinMode(inPinI2,INPUT);
+  pinMode(inPinI2, INPUT);
   adcAttachPin(inPinI2);
-  pinMode(inPinI3,INPUT);
+  pinMode(inPinI3, INPUT);
   adcAttachPin(inPinI3);
-  pinMode(inPinI4,INPUT);
+  pinMode(inPinI4, INPUT);
   adcAttachPin(inPinI4);
- 
+
   Serial.begin(115200);
   delay(500);
   //WiFi Part
   WIFI_Connect();
-              // OTA ---------->
-              // Port defaults to 8266
-              // ArduinoOTA.setPort(8266);
-            
-              // Hostname defaults to esp8266-[ChipID]
-              ArduinoOTA.setHostname("ESP32_Keller_Wechselstrom_messen");
-            
-              // No authentication by default
-              ArduinoOTA.setPassword((const char *)"ESP32_Keller_Wechselstrom_messen");
-            
-              ArduinoOTA.onStart([]() {
-                Serial.println("OTA Start");
-              });
-              ArduinoOTA.onEnd([]() {
-                Serial.println("OTA End");
-              });
-              ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-                Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
-              });
-              ArduinoOTA.onError([](ota_error_t error) {
-                Serial.printf("Error[%u]: ", error);
-                if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-                else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-                else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-                else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-                else if (error == OTA_END_ERROR) Serial.println("End Failed");
-              });
-              ArduinoOTA.begin();
-              Serial.println("OTA Ready");
-              Serial.print("IP address: ");
-              Serial.println(WiFi.localIP());
-              // OTA <----------
+  // OTA ---------->
+  // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname("ESP32_Keller_Wechselstrom_messen");
+
+  // No authentication by default
+  ArduinoOTA.setPassword((const char *)"ESP32_Keller_Wechselstrom_messen");
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("OTA Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("OTA End");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("OTA Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  // OTA <----------
 }
 
 void loop() {
-ArduinoOTA.handle();
-timer = millis();
+  ArduinoOTA.handle();
+  timer = millis();
 
-//Wifi WatchDog
-WiFi.onEvent(WiFiEvent);
-
-
-   
-//**************************************************************************
-//Phase1
-  for (int n=0; n<numberOfSamples; n++)
-{
-   
-   //Used for offset removal
-   lastSampleI1=sampleI1;
-   
-   //Read in voltage and current samples.  
-   sampleI1 = analogRead(inPinI1);
- 
-   //Used for offset removal
-   lastFilteredI1 = filteredI1;
- 
-   //Digital high pass filters to remove 1.6V DC offset.
-   filteredI1 = 0.9989 * (lastFilteredI1+sampleI1-lastSampleI1);
-   
-   //Root-mean-square method current
-   //1) square current values
-   sqI1 = filteredI1 * filteredI1;
-   //2) sum
-   sumI1 += sqI1;
-   delay(0.00002);
-}
-
-//Calculation of the root of the mean of the voltage and current squared (rms)
-//Calibration coeficients applied.
-Irms1 = (I_RATIO * sqrt(sumI1 / numberOfSamples)) - 0.09;     // - 1
-if ((Irms1 < 0) || (firstrun < 2)){ Irms1 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI1 = 0;
-Power1 = Irms1 * VOLTAGE;
-
-Serial.println("Irms1:"+String(Irms1));
-
-//**************************************************************************
-//Phase2
- for (int n=0; n<numberOfSamples; n++)
-{
-   
-   //Used for offset removal
-   lastSampleI2=sampleI2;
-   
-   //Read in voltage and current samples.  
-   sampleI2 = analogRead(inPinI2);
-
-   //Used for offset removal
-   lastFilteredI2 = filteredI2;
- 
-   //Digital high pass filters to remove 1.6V DC offset.
-   filteredI2 = 0.9989 * (lastFilteredI2+sampleI2-lastSampleI2);
-   
-   //Root-mean-square method current
-   //1) square current values
-   sqI2 = filteredI2 * filteredI2;
-   //2) sum
-   sumI2 += sqI2;
-   delay(0.00002);
-}
-
-//Calculation of the root of the mean of the voltage and current squared (rms)
-//Calibration coeficients applied.
-Irms2 = (I_RATIO * sqrt(sumI2 / numberOfSamples)) - 0.09 ;     // - 1.3;
-if ((Irms2 < 0) || (firstrun < 2)){ Irms2 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI2 = 0;
-Power2 = Irms2 * VOLTAGE;
-
-Serial.println("Irms2:"+String(Irms2));
-
-//**************************************************************************
-//Phase3
- for (int n=0; n<numberOfSamples; n++)
-{
-   
-   //Used for offset removal
-   lastSampleI3=sampleI3;
-   
-   //Read in voltage and current samples.  
-   sampleI3 = analogRead(inPinI3);
-
-   //Used for offset removal
-   lastFilteredI3 = filteredI3;
- 
-   //Digital high pass filters to remove 1.6V DC offset.
-   filteredI3 = 0.9989 * (lastFilteredI3+sampleI3-lastSampleI3);
-   
-   //Root-mean-square method current
-   //1) square current values
-   sqI3 = filteredI3 * filteredI3;
-   //2) sum
-   sumI3 += sqI3;
-   delay(0.0002);
-}
-
-//Calculation of the root of the mean of the voltage and current squared (rms)
-//Calibration coeficients applied.
-Irms3 = (I_RATIO * sqrt(sumI3 / numberOfSamples)) - 0.09;     // - 1.3;
-if ((Irms3 < 0) || (firstrun < 2)){ Irms3 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-sumI3 = 0;
-Power3 = Irms3 * VOLTAGE;
-
-Serial.println("Irms3:"+String(Irms3));
-
-//**************************************************************************
-//Solar1
-// for (int n=0; n<numberOfSamples; n++)
-//{
-//   
-//   //Used for offset removal
-//   lastSampleI4=sampleI4;
-//   
-//   //Read in voltage and current samples.  
-//   sampleI4 = analogRead(inPinI4);
-//
-//   //Used for offset removal
-//   lastFilteredI4 = filteredI4;
-// 
-//   //Digital high pass filters to remove 1.6V DC offset.
-//   filteredI4 = 0.9989 * (lastFilteredI4+sampleI4-lastSampleI4);
-//   
-//   //Root-mean-square method current
-//   //1) square current values
-//   sqI4 = filteredI4 * filteredI4;
-//   //2) sum
-//   sumI4 += sqI4;
-//   delay(0.0002);
-//}
-//
-////Calculation of the root of the mean of the voltage and current squared (rms)
-////Calibration coeficients applied.
-//Irms4 = (I_RATIO * sqrt(sumI4 / numberOfSamples)) - 0.09;     // - 1.3;
-//if ((Irms4 < 0) || (firstrun < 2)){ Irms4 = 0; }; //Set negative Current to zero and ignore the first 2 calculations
-//sumI4 = 0;
-//Solar1 = Irms4 * VOLTAGE;
-//Solar1 = Solar1 - 8;
-//if ( Solar1 < 0 ) Solar1 = 0;
-//if ( Solar1 > 310 ) Solar1 = 310;
-//
-//Serial.println("Irms4:"+String(Irms4));
-////**************************************************************************
-//
+  //Wifi WatchDog
+  WiFi.onEvent(WiFiEvent);
 
 
-//Check if WiFi is here
-//Automatically reconnect the ESP32 if the WiFi Router is not there...
-if (WiFi.status() != WL_CONNECTED)
+  if ( timer - lasttimer > 15000 )
+  {
+
+    //**************************************************************************
+    //Phase1
+    for (int n = 0; n < numberOfSamples; n++)
+    {
+
+      //Used for offset removal
+      lastSampleI1 = sampleI1;
+
+      //Read in voltage and current samples.
+      sampleI1 = analogRead(inPinI1);
+
+      //Used for offset removal
+      lastFilteredI1 = filteredI1;
+
+      //Digital high pass filters to remove 1.6V DC offset.
+      filteredI1 = 0.9989 * (lastFilteredI1 + sampleI1 - lastSampleI1);
+
+      //Root-mean-square method current
+      //1) square current values
+      sqI1 = filteredI1 * filteredI1;
+      //2) sum
+      sumI1 += sqI1;
+      delay(0.00002);
+    }
+
+    //Calculation of the root of the mean of the voltage and current squared (rms)
+    //Calibration coeficients applied.
+    Irms1 = (I_RATIO * sqrt(sumI1 / numberOfSamples)) - 0.09;     // - 1
+    if ((Irms1 < 0) || (firstrun < 2)) {
+      Irms1 = 0;
+    }; //Set negative Current to zero and ignore the first 2 calculations
+    sumI1 = 0;
+    Power1 = Irms1 * VOLTAGE;
+
+    Serial.println("Irms1:" + String(Irms1));
+
+    //**************************************************************************
+    //Phase2
+    for (int n = 0; n < numberOfSamples; n++)
+    {
+
+      //Used for offset removal
+      lastSampleI2 = sampleI2;
+
+      //Read in voltage and current samples.
+      sampleI2 = analogRead(inPinI2);
+
+      //Used for offset removal
+      lastFilteredI2 = filteredI2;
+
+      //Digital high pass filters to remove 1.6V DC offset.
+      filteredI2 = 0.9989 * (lastFilteredI2 + sampleI2 - lastSampleI2);
+
+      //Root-mean-square method current
+      //1) square current values
+      sqI2 = filteredI2 * filteredI2;
+      //2) sum
+      sumI2 += sqI2;
+      delay(0.00002);
+    }
+
+    //Calculation of the root of the mean of the voltage and current squared (rms)
+    //Calibration coeficients applied.
+    Irms2 = (I_RATIO * sqrt(sumI2 / numberOfSamples)) - 0.09 ;     // - 1.3;
+    if ((Irms2 < 0) || (firstrun < 2)) {
+      Irms2 = 0;
+    }; //Set negative Current to zero and ignore the first 2 calculations
+    sumI2 = 0;
+    Power2 = Irms2 * VOLTAGE;
+
+    Serial.println("Irms2:" + String(Irms2));
+
+    //**************************************************************************
+    //Phase3
+    for (int n = 0; n < numberOfSamples; n++)
+    {
+
+      //Used for offset removal
+      lastSampleI3 = sampleI3;
+
+      //Read in voltage and current samples.
+      sampleI3 = analogRead(inPinI3);
+
+      //Used for offset removal
+      lastFilteredI3 = filteredI3;
+
+      //Digital high pass filters to remove 1.6V DC offset.
+      filteredI3 = 0.9989 * (lastFilteredI3 + sampleI3 - lastSampleI3);
+
+      //Root-mean-square method current
+      //1) square current values
+      sqI3 = filteredI3 * filteredI3;
+      //2) sum
+      sumI3 += sqI3;
+      delay(0.0002);
+    }
+
+    //Calculation of the root of the mean of the voltage and current squared (rms)
+    //Calibration coeficients applied.
+    Irms3 = (I_RATIO * sqrt(sumI3 / numberOfSamples)) - 0.09;     // - 1.3;
+    if ((Irms3 < 0) || (firstrun < 2)) {
+      Irms3 = 0;
+    }; //Set negative Current to zero and ignore the first 2 calculations
+    sumI3 = 0;
+    Power3 = Irms3 * VOLTAGE;
+
+    Serial.println("Irms3:" + String(Irms3));
+
+    //**************************************************************************
+
+
+    //Check if WiFi is here
+    //Automatically reconnect the ESP32 if the WiFi Router is not there...
+    if (WiFi.status() != WL_CONNECTED)
     {
       WiFi.onEvent(WiFiEvent);
       WIFI_Connect();
     }   else {
 
-//Send the data to the server...
-  if ((WiFi.status() == WL_CONNECTED) && (firstrun >= 2)) { //WiFi Check, ignore the first data
-   
-    // Use WiFiClient class to create TCP connections
-    WiFiClient client;
-    const int httpPort = 80;
-    if (!client.connect(host, httpPort)) {
-        Serial.println("connection failed");
-        return;
-    }
+      // Connect...
+      if ((WiFi.status() == WL_CONNECTED) && (firstrun >= 2)) { //WiFi Check, ignore the first data
 
-///////////////////////////////////
+        // Use WiFiClient class to create TCP connections
+        WiFiClient client;
+        const int httpPort = 80;
+        if (!client.connect(host, httpPort)) {
+          Serial.println("connection failed");
+          return;
+        }
 
-
- 
-    String url = "/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41";
-    // This will send the request to the server
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-    unsigned long timeout = millis();
-    while (client.available() == 0) {
-        if (millis() - timeout > 5000) {
+        String url = "/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41";
+        Serial.println("get the request from the server");
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                     "Host: " + host + "\r\n" +
+                     "Connection: close\r\n\r\n");
+        unsigned long timeout = millis();
+        while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
             Serial.println(">>> Client Timeout !");
             client.stop();
             return;
+          }
         }
-    }
-    String line;
-    // Read all the lines of the reply from server and print them to Serial
-    while(client.available()) {
-        line = client.readStringUntil('\r');
-        Serial.print(line);
-    }
+        String line;
+        String Wert = "";
+        // Read all the lines of the reply from server and print them to Serial
+        while (client.available()) {
+          line = client.readStringUntil('\r');
+          if ( line.substring(1, 2) == "{" )
+          {
+            //"{"time":1579179242,"value":418.31}";
+            Serial.print("line ");
+            Serial.println(line);
+            int Doppelpunkt = line.lastIndexOf(':');
+            int Klammer = line.lastIndexOf('}');
+            Wert = line.substring(Doppelpunkt + 1, Klammer);
+            Serial.print("Solar1AbfrageWert ");
+            Serial.println(Wert);
+          }
+        }
+        Solar1AbfrageWert = Wert.toDouble();
 
-     //"{"time":1579179242,"value":418.31}";
-    int Doppelpunkt = line.lastIndexOf('}');
-    int Klammer = line.lastIndexOf(':');
-    String Wert = line.substring(Doppelpunkt,Klammer);
-    if( Power1 < Solar1AbfrageWert ) {
-        Power1 = Power1 * -1;
-    }
-    Serial.println("SummeP1-3:"+String(Irms1+Irms2+Irms3));
-    //Calculate Power
-    PowerSum = Power1 + Power2 + Power3;
-    Serial.println("PowerSum(W):"+String(PowerSum));
+        ////debug//
+        //Power1=100;
+        //Power2=100;
+        //Power3=100;
+        //Solar1AbfrageWert = 150;
+        //// debug ende
 
-////Calculate Power minus Solar1
-PowerMinusSolar = PowerSum - Solar1AbfrageWert;
-Serial.println("PowerMinusSolar(W):"+String(PowerMinusSolar));
+        if ( Power1 < Solar1AbfrageWert ) {
+          Power1 = Power1 * -1;  //Der gemessene Strom fließ zurück ins Netz und bekommt ein negatives Vorzeichen
+        }
+        Serial.println("Power1=" + String(Power1) );
+        Serial.println("Summe Ampere = " + String(Irms1 + Irms2 + Irms3));
+        //Calculate Power
+        PowerSum = Power1 + Power2 + Power3;
+        Serial.println("PowerSum(W)= " + String(PowerSum));
 
 
+        // Use WiFiClient class to create TCP connections
+        if (!client.connect(host, httpPort)) {
+          Serial.println("ZWEITE Connection failed");
+          return;
+        }
+        // We now create a URI for the request
+        // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
+        url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
+        url = url + "Power1:" + Power1 + ",";
+        url = url + "Power2:" + Power2 + ",";
+        url = url + "Power3:" + Power3 + ",";
+        url = url + "PowerSum:" + PowerSum + "}";
 
-    // We now create a URI for the request
-    // http://v92140.1blu.de/energie/emoncms/input/post?node=WGS220&fulljson={"Phase1":100,"Phase2":200,"Phase3":300}
-    url = "/energie/emoncms/input/post.json?node=WGS220&apikey=4f76b2121bcaee97658de17a5cb0ca41&json={" ;
-    url = url + "Power1:" + Power1 + ",";
-    url = url + "Power2:" + Power2 + ",";
-    url = url + "Power3:" + Power3 + ",";   
-    url = url + "PowerMinusSolar:" + PowerMinusSolar + ",";  
-    url = url + "PowerSum:" + PowerSum + "}";
+        Serial.print("Requesting URL: ");
+        Serial.println(url);
 
-    Serial.print("Requesting URL: ");
-    Serial.println(url);
+        // This will send the request to the server
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                     "Host: " + host + "\r\n" +
+                     "Connection: close\r\n\r\n");
 
-    // This will send the request to the server
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-
-    while (client.available() == 0) {
-        if (millis() - timeout > 5000) {
+        while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
             Serial.println(">>> Client Timeout !");
             client.stop();
             return;
+          }
         }
-    }   
+      }
+
+      if (firstrun <= 2) {
+        firstrun++;
+      }; //Counter for Trash Data
+
+    }  //WiFi Watchdog
   }
- 
-  if (firstrun <= 2) {firstrun++;}; //Counter for Trash Data
-  delay(1000);
-    }//WiFi Watchdog
 }
-
 //Wifi Watchdog
 void WiFiEvent(WiFiEvent_t event) {
   Serial.printf("[WiFi-event] event: %d  - ", event);
-  switch(event) {
-  case SYSTEM_EVENT_STA_GOT_IP:
+  switch (event) {
+    case SYSTEM_EVENT_STA_GOT_IP:
       Serial.println("WiFi connected");
       Serial.print("IP address: "); Serial.println(WiFi.localIP());
       break;
-  case SYSTEM_EVENT_STA_DISCONNECTED:
+    case SYSTEM_EVENT_STA_DISCONNECTED:
       Serial.println("WiFi lost connection");
       WiFi.begin();   // <<<<<<<<<<<  added  <<<<<<<<<<<<<<<
       ESP.restart();
       break;
-  case SYSTEM_EVENT_STA_START:
+    case SYSTEM_EVENT_STA_START:
       Serial.println("ESP32 station start");
       break;
-  case SYSTEM_EVENT_STA_CONNECTED:
+    case SYSTEM_EVENT_STA_CONNECTED:
       Serial.println("ESP32 station connected to AP");
       break;
-  case SYSTEM_EVENT_STA_LOST_IP:
+    case SYSTEM_EVENT_STA_LOST_IP:
       Serial.println("ESP32 Lost IP");
       WiFi.begin();   // <<<<<<<<<<<  added  <<<<<<<<<<<<<<<
       ESP.restart();
