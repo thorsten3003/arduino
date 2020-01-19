@@ -168,7 +168,7 @@ void loop() {
   timer = millis();
 
   //Wifi WatchDog
-  WiFi.onEvent(WiFiEvent);
+  //WiFi.onEvent(WiFiEvent);
 
 
   if ( timer - lasttimer > 15000 )
@@ -388,6 +388,7 @@ void loop() {
       }; //Counter for Trash Data
 
     }  //WiFi Watchdog
+    lasttimer = millis();
   }
 }
 //Wifi Watchdog
