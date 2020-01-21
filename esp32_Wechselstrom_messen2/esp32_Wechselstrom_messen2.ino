@@ -1,5 +1,5 @@
 /*
-   Board: ESP32 Dev Module
+   Board: ESP32 Dev Module, Upload 921600, CPU 160MHz, Flash 80MHz, FlashMode QIC, Flash Size 2MB (16MB), Schema: Default 4 with Spiffs, PSRAM disabled
    Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
    emoncms: feedlist: http://v92140.1blu.de/energie/emoncms/feed/list.json
    http://v92140.1blu.de/energie/emoncms/feed/timevalue.json?id=55&apikey=4f76b2121bcaee97658de17a5cb0ca41
@@ -344,7 +344,9 @@ void loop() {
         //// debug ende
 
         if ( Power1 < Solar1AbfrageWert ) {
-          Power1 = Power1 * -1;  //Der gemessene Strom fließ zurück ins Netz und bekommt ein negatives Vorzeichen
+          // Power1 = Power1 * -1;  //Der gemessene Strom fließ zurück ins Netz und bekommt ein negatives Vorzeichen
+          double Grundlast = ( Solar1AbfrageWert - Power1 ) * 2;
+          Power1 = Solar1AbfrageWert - Grundlast;
         }
         Serial.println("Power1=" + String(Power1) );
         Serial.println("Summe Ampere = " + String(Irms1 + Irms2 + Irms3));

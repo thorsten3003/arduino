@@ -1,91 +1,90 @@
-/*/*
- * Board: Wemos Lolin32 oder TTGO LoRa32-OLED-V1
- *   WiFi.mode(WIFI_STA);
- * Downloaded from: technik-fan.de/index.php/Open_Energy_Monitor_mit_dem_ESP32
- *
- * --------------------------------------------------
-  HTTP 1.1 Webserver as AccessPoint for ESP8266
-  for ESP8266 adapted Arduino IDE
-
-  by Stefan Thesen 08/2015 - free for anyone
-
-  Does HTTP 1.1 with defined connection closing.
-  Handles empty requests in a defined manner.
-  Handle requests for non-exisiting pages correctly.
-
-  This demo allows to switch two functions:
-  Function 1 creates serial output and toggels GPIO2
-  Function 2 just creates serial output.
-
-  Serial output can e.g. be used to steer an attached
-  Arduino, Raspberry etc.
-  --------------------------------------------------*/
+/*
+ *   Board: ESP32 Dev Module, Upload 921600, CPU 160MHz, Flash 80MHz, FlashMode QIC, Flash Size 2MB (16MB), Schema: Default 4 with Spiffs, PSRAM disabled
+ *   https://randomnerdtutorials.com/esp32-access-point-ap-web-server/
+*/
 
 #include "WiFi.h"
 #include "DHT.h"                
 
 //Spannung messen
-int Sensor = 34;
+int Sensor = 32;
 float Spannung = 0.0;
 int Sensorwert = 0;
 int NumberOfSamples = 1000;
-
+double h = 0;
+double t = 0;
+    
 //Temperatur messen
-#define DHTPIN 4
+#define DHTPIN 24
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
 //WIFI
 const char* ssid     = "ESP32-Access-Point";
 const char* password = "123456789";
-unsigned long ulReqcount;
-unsigned long timer;
 
-// Create an instance of the server on Port 80
+// Set web server port number to 80
 WiFiServer server(80);
 
-void setup()
-{
+unsigned long timer;
+unsigned long timeSinceLastRead ;
+
+String header;
+
+// Auxiliar variables to store the current output state
+String output26State = "off";
+String output27State = "off";
+
+// Assign output variables to GPIO pins
+const int output26 = 25;
+const int output27 = 27;
+
+
+
+void setup() {
   Serial.begin(115200);
-  dht.begin();
+  // Initialize the output variables as outputs
+  pinMode(output26, OUTPUT);
+  pinMode(output27, OUTPUT);
+  // Set outputs to LOW
+  digitalWrite(output26, LOW);
+  digitalWrite(output27, LOW);
 
-  // setup globals
-  ulReqcount = 0;
-
-  // prepare GPIO2
-  pinMode(2, OUTPUT);
-  digitalWrite(2, 0);
-
-  // start serial
-  Serial.begin(9600);
-  delay(1);
-
-  // AP mode
-  WiFi.mode(WIFI_AP);
+  // Connect to Wi-Fi network with SSID and password
+  Serial.print("Setting AP (Access Point)…");
+  // Remove the password parameter, if you want the AP (Access Point) to be open
   WiFi.softAP(ssid, password);
+
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+  
   server.begin();
+
+  timeSinceLastRead = millis();
 }
 
-int timeSinceLastRead = 0;
+
 void loop()
 {
   timer = millis();
-
+  
+  if (timer - timeSinceLastRead > 20000) {
   //Spannung messen
   Sensorwert = analogRead(Sensor);
   Spannung = Sensorwert * 0.01325 ;
-  Serial.print("INPUT V= ");
-  Serial.println(Spannung, 1);
-  Serial.print("Value= ");
-  Serial.println(Sensorwert);
-
+  //Serial.println("INPUT V= " + String(Spannung, 1) );
+  //Serial.println("Value= "   + String(Sensorwert) );
+ 
   //*******************************************************************************
-  if (timeSinceLastRead > 2000) {
-    double h = dht.readHumidity();    // Lesen der Luftfeuchtigkeit und speichern in die Variable h
-    double t = dht.readTemperature(); // Lesen der Temperatur in °C und speichern in die Variable t
+
+
+     h = dht.readHumidity();    // Lesen der Luftfeuchtigkeit und speichern in die Variable h
+     t = dht.readTemperature(); // Lesen der Temperatur in °C und speichern in die Variable t
     if (isnan(h) || isnan(t)) {
       Serial.println("Fehler beim auslesen des Sensors!");
-      return;
+      h=0;
+      t=0;
     }
     Serial.print("Luftfeuchtigkeit: ");
     Serial.print(h);                  // Ausgeben der Luftfeuchtigkeit
@@ -97,164 +96,109 @@ void loop()
 
     //**************************************************************************
     
-    timeSinceLastRead = 0;
+    timeSinceLastRead = millis();
   }
   
-  // Check if a client has connected
-  WiFiClient client = server.available();
-  if (!client)
-  {
-    return;
-  }
+  WiFiClient client = server.available();   // Listen for incoming clients
+ 
+   if (client) {                             // If a new client connects,
+    Serial.println("New Client.");          // print a message out in the serial port
+    String currentLine = "";                // make a String to hold incoming data from the client
+    while (client.connected()) {            // loop while the client's connected
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+        Serial.write(c);                    // print it out the serial monitor
+        header += c;
+        if (c == '\n') {                    // if the byte is a newline character
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println("Connection: close");
+            client.println();
+            
+            // turns the GPIOs on and off
+            if (header.indexOf("GET /26/on") >= 0) {
+              Serial.println("GPIO 26 on");
+              output26State = "on";
+              digitalWrite(output26, HIGH);
+            } else if (header.indexOf("GET /26/off") >= 0) {
+              Serial.println("GPIO 26 off");
+              output26State = "off";
+              digitalWrite(output26, LOW);
+            } else if (header.indexOf("GET /27/on") >= 0) {
+              Serial.println("GPIO 27 on");
+              output27State = "on";
+              digitalWrite(output27, HIGH);
+            } else if (header.indexOf("GET /27/off") >= 0) {
+              Serial.println("GPIO 27 off");
+              output27State = "off";
+              digitalWrite(output27, LOW);
+            }
+            
+            // Display the HTML web page
+            client.println("<!DOCTYPE html><html>");
+            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+            client.println("<link rel=\"icon\" href=\"data:,\">");
+            // CSS to style the on/off buttons 
+            // Feel free to change the background-color and font-size attributes to fit your preferences
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
+            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
+            client.println(".button2 {background-color: #555555;}</style></head>");
+            
+            // Web Page Heading
+            client.println("<body><h1>ESP32 Web Server</h1>");
 
-  // Wait until the client sends some data
-  Serial.println("new client");
-  unsigned long ultimeout = millis() + 250;
-  while (!client.available() && (millis() < ultimeout) )
-  {
-    delay(1);
-  }
-  if (millis() > ultimeout)
-  {
-    Serial.println("client connection time-out!");
-    return;
-  }
+            // Sensorwerte
+            client.println("<h2>Spannung = " + String(Spannung, 1) + "</h2>");
+            Serial.println("INPUT V= " + String(Spannung, 1) );
+            Serial.println("Value= "   + String(Sensorwert) );
 
-  // Read the first line of the request
-  String sRequest = client.readStringUntil('\r');
-  //Serial.println(sRequest);
-  client.flush();
+            client.print("<h2>Luftfeuchtigkeit: " + String(h) + "</h2>");
+            client.print("<h2>Temperatur: " + String(t) + '°' + "C </h2>");
 
-  // stop client, if request is empty
-  if (sRequest == "")
-  {
-    Serial.println("empty request! - stopping client");
+             client.print("<hr>");
+             
+            // Display current state, and ON/OFF buttons for GPIO 26  
+            client.println("<p>GPIO 26 - State " + output26State + "</p>");
+            // If the output26State is off, it displays the ON button       
+            if (output26State=="off") {
+              client.println("<p><a href=\"/26/on\"><button class=\"button\">ON</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
+            } 
+               
+            // Display current state, and ON/OFF buttons for GPIO 27  
+            client.println("<p>GPIO 27 - State " + output27State + "</p>");
+            // If the output27State is off, it displays the ON button       
+            if (output27State=="off") {
+              client.println("<p><a href=\"/27/on\"><button class=\"button\">ON</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
+            }
+            client.println("</body></html>");
+            
+            // The HTTP response ends with another blank line
+            client.println();
+            // Break out of the while loop
+            break;
+          } else { // if you got a newline, then clear currentLine
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+      }
+    }
+    // Clear the header variable
+    header = "";
+    // Close the connection
     client.stop();
-    return;
+    Serial.println("Client disconnected.");
+    Serial.println("");
   }
-
-  // get path; end of path is either space or ?
-  // Syntax is e.g. GET /?pin=MOTOR1STOP HTTP/1.1
-  String sPath = "", sParam = "", sCmd = "";
-  String sGetstart = "GET ";
-  int iStart, iEndSpace, iEndQuest;
-  iStart = sRequest.indexOf(sGetstart);
-  if (iStart >= 0)
-  {
-    iStart += +sGetstart.length();
-    iEndSpace = sRequest.indexOf(" ", iStart);
-    iEndQuest = sRequest.indexOf("?", iStart);
-
-    // are there parameters?
-    if (iEndSpace > 0)
-    {
-      if (iEndQuest > 0)
-      {
-        // there are parameters
-        sPath  = sRequest.substring(iStart, iEndQuest);
-        sParam = sRequest.substring(iEndQuest, iEndSpace);
-      }
-      else
-      {
-        // NO parameters
-        sPath  = sRequest.substring(iStart, iEndSpace);
-      }
-    }
-  }
-
-  ///////////////////////////////////////////////////////////////////////////////
-  // output parameters to serial, you may connect e.g. an Arduino and react on it
-  ///////////////////////////////////////////////////////////////////////////////
-  if (sParam.length() > 0)
-  {
-    int iEqu = sParam.indexOf("=");
-    if (iEqu >= 0)
-    {
-      sCmd = sParam.substring(iEqu + 1, sParam.length());
-      Serial.println(sCmd);
-    }
-  }
-
-
-  ///////////////////////////
-  // format the html response
-  ///////////////////////////
-  String sResponse, sHeader;
-
-  ////////////////////////////
-  // 404 for non-matching path
-  ////////////////////////////
-  if (sPath != "/")
-  {
-    sResponse = "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>";
-
-    sHeader  = "HTTP/1.1 404 Not found\r\n";
-    sHeader += "Content-Length: ";
-    sHeader += sResponse.length();
-    sHeader += "\r\n";
-    sHeader += "Content-Type: text/html\r\n";
-    sHeader += "Connection: close\r\n";
-    sHeader += "\r\n";
-  }
-  ///////////////////////
-  // format the html page
-  ///////////////////////
-  else
-  {
-    ulReqcount++;
-    sResponse  = "<html><head><title>Demo f&uumlr ESP8266 Steuerung</title></head><body>";
-    sResponse += "<font color=\"#000000\"><body bgcolor=\"#d0d0f0\">";
-    sResponse += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">";
-    sResponse += "<h1>Demo f&uumlr ESP8266 Access Point</h1>";
-    sResponse += "Funktion 1 schaltet GPIO2 und erzeugt eine serielle Ausgabe.<BR>";
-    sResponse += "Funktion 2 erzeugt nur eine serielle Ausgabe.<BR>";
-
-    sResponse += "Spannung= ";
-    sResponse += Spannung;
-    sResponse += "<FONT SIZE=+1>";
-    sResponse += "<p>Funktion 1 <a href=\"?pin=FUNCTION1ON\"><button>einschalten</button></a>&nbsp;<a href=\"?pin=FUNCTION1OFF\"><button>ausschalten</button></a></p>";
-    sResponse += "<p>Funktion 2 <a href=\"?pin=FUNCTION2ON\"><button>einschalten</button></a>&nbsp;<a href=\"?pin=FUNCTION2OFF\"><button>ausschalten</button></a></p>";
-
-    //////////////////////
-    // react on parameters
-    //////////////////////
-    if (sCmd.length() > 0)
-    {
-      // write received command to html page
-      sResponse += "Kommando:" + sCmd + "<BR>";
-
-      // switch GPIO
-      if (sCmd.indexOf("FUNCTION1ON") >= 0)
-      {
-        digitalWrite(2, 1);
-      }
-      else if (sCmd.indexOf("FUNCTION1OFF") >= 0)
-      {
-        digitalWrite(2, 0);
-      }
-    }
-
-    sResponse += "<FONT SIZE=-2>";
-    sResponse += "<BR>Aufrufz&auml;hler=";
-    sResponse += ulReqcount;
-    sResponse += "<BR>";
-    sResponse += "Stefan Thesen 08/2015<BR>";
-    sResponse += "</body></html>";
-
-    sHeader  = "HTTP/1.1 200 OK\r\n";
-    sHeader += "Content-Length: ";
-    sHeader += sResponse.length();
-    sHeader += "\r\n";
-    sHeader += "Content-Type: text/html\r\n";
-    sHeader += "Connection: close\r\n";
-    sHeader += "\r\n";
-  }
-
-  // Send the response to the client
-  client.print(sHeader);
-  client.print(sResponse);
-
-  // and stop the client
-  client.stop();
-  Serial.println("Client disonnected");
 }
