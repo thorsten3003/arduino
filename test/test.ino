@@ -1,141 +1,189 @@
-/*********
-  Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
-*********/
+// https://github.com/Xinyuan-LilyGO/TTGO-T-Display?spm=a2g0o.detail.1000023.1.59f89ca72kY3yP
+// http://www.lilygo.cn/claprod_view.aspx?TypeId=21&Id=1128&FId=t28:21:28
+// https://github.com/Bodmer/TFT_eSPI
+// https://github.com/LennartHennigs/Button2
 
-// Load Wi-Fi library
-#include <WiFi.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
+#include "WiFi.h"
+#include <Wire.h>
+#include <Button2.h>
+#include "esp_adc_cal.h"
+#include "bmp.h"
 
-// Replace with your network credentials
-const char* ssid     = "ESP32-Access-Point";
-const char* password = "123456789";
+#ifndef TFT_DISPOFF
+#define TFT_DISPOFF 0x28
+#endif
 
-// Set web server port number to 80
-WiFiServer server(80);
+#ifndef TFT_SLPIN
+#define TFT_SLPIN   0x10
+#endif
 
-// Variable to store the HTTP request
-String header;
+#define TFT_MOSI            19
+#define TFT_SCLK            18
+#define TFT_CS              5
+#define TFT_DC              16
+#define TFT_RST             23
 
-// Auxiliar variables to store the current output state
-String output26State = "off";
-String output27State = "off";
+#define TFT_BL          4  // Display backlight control pin
+#define ADC_EN          14
+#define ADC_PIN         34
+#define BUTTON_1        35
+#define BUTTON_2        0
 
-// Assign output variables to GPIO pins
-const int output26 = 26;
-const int output27 = 27;
+TFT_eSPI tft = TFT_eSPI(135, 240); // Invoke custom library
+Button2 btn1(BUTTON_1);
+Button2 btn2(BUTTON_2);
 
-void setup() {
-  Serial.begin(115200);
-  // Initialize the output variables as outputs
-  pinMode(output26, OUTPUT);
-  pinMode(output27, OUTPUT);
-  // Set outputs to LOW
-  digitalWrite(output26, LOW);
-  digitalWrite(output27, LOW);
+char buff[512];
+int vref = 1100;
+int btnCick = false;
 
-  // Connect to Wi-Fi network with SSID and password
-  Serial.print("Setting AP (Access Point)…");
-  // Remove the password parameter, if you want the AP (Access Point) to be open
-  WiFi.softAP(ssid, password);
-
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
-  
-  server.begin();
+//! Long time delay, it is recommended to use shallow sleep, which can effectively reduce the current consumption
+void espDelay(int ms)
+{   
+    esp_sleep_enable_timer_wakeup(ms * 1000);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,ESP_PD_OPTION_ON);
+    esp_light_sleep_start();
 }
 
-void loop(){
-  WiFiClient client = server.available();   // Listen for incoming clients
-
-  if (client) {                             // If a new client connects,
-    Serial.println("New Client.");          // print a message out in the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        header += c;
-        if (c == '\n') {                    // if the byte is a newline character
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println("Connection: close");
-            client.println();
-            
-            // turns the GPIOs on and off
-            if (header.indexOf("GET /26/on") >= 0) {
-              Serial.println("GPIO 26 on");
-              output26State = "on";
-              digitalWrite(output26, HIGH);
-            } else if (header.indexOf("GET /26/off") >= 0) {
-              Serial.println("GPIO 26 off");
-              output26State = "off";
-              digitalWrite(output26, LOW);
-            } else if (header.indexOf("GET /27/on") >= 0) {
-              Serial.println("GPIO 27 on");
-              output27State = "on";
-              digitalWrite(output27, HIGH);
-            } else if (header.indexOf("GET /27/off") >= 0) {
-              Serial.println("GPIO 27 off");
-              output27State = "off";
-              digitalWrite(output27, LOW);
-            }
-            
-            // Display the HTML web page
-            client.println("<!DOCTYPE html><html>");
-            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            client.println("<link rel=\"icon\" href=\"data:,\">");
-            // CSS to style the on/off buttons 
-            // Feel free to change the background-color and font-size attributes to fit your preferences
-            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
-            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #555555;}</style></head>");
-            
-            // Web Page Heading
-            client.println("<body><h1>ESP32 Web Server</h1>");
-            
-            // Display current state, and ON/OFF buttons for GPIO 26  
-            client.println("<p>GPIO 26 - State " + output26State + "</p>");
-            // If the output26State is off, it displays the ON button       
-            if (output26State=="off") {
-              client.println("<p><a href=\"/26/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
-            } 
-               
-            // Display current state, and ON/OFF buttons for GPIO 27  
-            client.println("<p>GPIO 27 - State " + output27State + "</p>");
-            // If the output27State is off, it displays the ON button       
-            if (output27State=="off") {
-              client.println("<p><a href=\"/27/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
-            }
-            client.println("</body></html>");
-            
-            // The HTTP response ends with another blank line
-            client.println();
-            // Break out of the while loop
-            break;
-          } else { // if you got a newline, then clear currentLine
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-      }
+void showVoltage()
+{
+    static uint64_t timeStamp = 0;
+    if (millis() - timeStamp > 1000) {
+        timeStamp = millis();
+        uint16_t v = analogRead(ADC_PIN);
+        float battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+        String voltage = "Voltage :" + String(battery_voltage) + "V";
+        Serial.println(voltage);
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(voltage,  tft.width() / 2, tft.height() / 2 );
     }
-    // Clear the header variable
-    header = "";
-    // Close the connection
-    client.stop();
-    Serial.println("Client disconnected.");
-    Serial.println("");
-  }
+}
+
+void button_init()
+{
+    btn1.setLongClickHandler([](Button2 & b) {
+        btnCick = false;
+        int r = digitalRead(TFT_BL);
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Press again to wake up",  tft.width() / 2, tft.height() / 2 );
+        espDelay(6000);
+        digitalWrite(TFT_BL, !r);
+
+        tft.writecommand(TFT_DISPOFF);
+        tft.writecommand(TFT_SLPIN);
+        esp_sleep_enable_ext1_wakeup(GPIO_SEL_35, ESP_EXT1_WAKEUP_ALL_LOW);
+        esp_deep_sleep_start();
+    });
+    btn1.setPressedHandler([](Button2 & b) {
+        Serial.println("Detect Voltage..");
+        btnCick = true;
+    });
+
+    btn2.setPressedHandler([](Button2 & b) {
+        btnCick = false;
+        Serial.println("btn press wifi scan");
+        wifi_scan();
+    });
+}
+
+void button_loop()
+{
+    btn1.loop();
+    btn2.loop();
+}
+
+void wifi_scan()
+{
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(1);
+
+    tft.drawString("Scan Network", tft.width() / 2, tft.height() / 2);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(100);
+
+    int16_t n = WiFi.scanNetworks();
+    tft.fillScreen(TFT_BLACK);
+    if (n == 0) {
+        tft.drawString("no networks found", tft.width() / 2, tft.height() / 2);
+    } else {
+        tft.setTextDatum(TL_DATUM);
+        tft.setCursor(0, 0);
+        Serial.printf("Found %d net\n", n);
+        for (int i = 0; i < n; ++i) {
+            sprintf(buff,
+                    "[%d]:%s(%d)",
+                    i + 1,
+                    WiFi.SSID(i).c_str(),
+                    WiFi.RSSI(i));
+            tft.println(buff);
+        }
+    }
+    WiFi.mode(WIFI_OFF);
+}
+
+void setup()
+{
+    Serial.begin(115200);
+    Serial.println("Start");
+    tft.init();
+    tft.setRotation(1);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_WHITE);
+    tft.setCursor(0, 0);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(1);
+
+    if (TFT_BL > 0) { // TFT_BL has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+         pinMode(TFT_BL, OUTPUT); // Set backlight pin to output mode
+         digitalWrite(TFT_BL, TFT_BACKLIGHT_ON); // Turn backlight on. TFT_BACKLIGHT_ON has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+    }
+
+    tft.setSwapBytes(true);
+    tft.pushImage(0, 0,  240, 135, ttgo);
+    espDelay(5000);
+
+    tft.setRotation(0);
+    int i = 5;
+    while (i--) {
+        tft.fillScreen(TFT_RED);
+        espDelay(1000);
+        tft.fillScreen(TFT_BLUE);
+        espDelay(1000);
+        tft.fillScreen(TFT_GREEN);
+        espDelay(1000);
+    }
+
+    button_init();
+
+    esp_adc_cal_characteristics_t adc_chars;
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize((adc_unit_t)ADC_UNIT_1, (adc_atten_t)ADC1_CHANNEL_6, (adc_bits_width_t)ADC_WIDTH_BIT_12, 1100, &adc_chars);
+    //Check type of calibration value used to characterize ADC
+    if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+        Serial.printf("eFuse Vref:%u mV", adc_chars.vref);
+        vref = adc_chars.vref;
+    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+        Serial.printf("Two Point --> coeff_a:%umV coeff_b:%umV\n", adc_chars.coeff_a, adc_chars.coeff_b);
+    } else {
+        Serial.println("Default Vref: 1100mV");
+    }
+}
+
+
+
+void loop()
+{
+    if (btnCick) {
+        showVoltage();
+    }
+    button_loop();
 }
