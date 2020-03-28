@@ -2,21 +2,62 @@
  *   Board: ESP32 Dev Module, Upload 921600, CPU 160MHz, Flash 80MHz, FlashMode QIC, Flash Size 2MB (16MB), Schema: Default 4 with Spiffs, PSRAM disabled
  *   https://randomnerdtutorials.com/esp32-access-point-ap-web-server/
  *   DHT: http://www.iotsharing.com/2017/05/how-to-arduino-esp32-dht11-dht22-temperature-humidity-sensor.html
+// https://github.com/Xinyuan-LilyGO/TTGO-T-Display?spm=a2g0o.detail.1000023.1.59f89ca72kY3yP
+// http://www.lilygo.cn/claprod_view.aspx?TypeId=21&Id=1128&FId=t28:21:28
+// https://github.com/Bodmer/TFT_eSPI
+// https://github.com/LennartHennigs/Button2
 */
 
+#include <TFT_eSPI.h>
+#include <SPI.h>
 #include "WiFi.h"
+#include <Wire.h>
+#include <Button2.h>
 #include "DHT.h"              
+
+
+#ifndef TFT_DISPOFF
+#define TFT_DISPOFF 0x28
+#endif
+
+#ifndef TFT_SLPIN
+#define TFT_SLPIN   0x10
+#endif
+
+#define TFT_MOSI            19
+#define TFT_SCLK            18
+#define TFT_CS              5
+#define TFT_DC              16
+#define TFT_RST             23
+
+#define TFT_BL          4  // Display backlight control pin
+#define ADC_EN          14
+#define ADC_PIN         34
+#define BUTTON_1        35
+#define BUTTON_2        0
+
+TFT_eSPI tft = TFT_eSPI(135, 240); // Invoke custom library
+Button2 btn1(BUTTON_1);
+Button2 btn2(BUTTON_2);
+
+char buff[512];
+int vref = 1100;
+int btnCick = false;
+
 
 //Spannung messen
 int Sensor = 32;
 float Spannung = 0.0;
 int Sensorwert = 0;
+const float R1 = 30000.0f; // Der Widerstand R1 hat eine größe von 30 kOhm
+const float R2 = 7500.0f; //  Der Widerstand R2 hat eine größe von 7,5 kOhm
+const float MAX_VIN = 5.0f;
 int NumberOfSamples = 1000;
 float h = 0;
 float t = 0;
     
 //Temperatur messen
-#define DHTPIN 32
+#define DHTPIN 33
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -37,17 +78,24 @@ String output26State = "off";
 String output27State = "off";
 
 // Assign output variables to GPIO pins
-const int output26 = 25;
+const int output26 = 26;
 const int output27 = 27;
 
 
 
 void setup() {
   Serial.begin(115200);
-  // Initialize the output variables as outputs
+  Serial.println("Setup");
+  tft.init();
+  tft.setRotation(1);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(0, 0);
+  tft.setTextDatum(MC_DATUM);
+  
   pinMode(output26, OUTPUT);
   pinMode(output27, OUTPUT);
-  // Set outputs to LOW
   digitalWrite(output26, LOW);
   digitalWrite(output27, LOW);
 
@@ -59,11 +107,13 @@ void setup() {
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
+  tft.print("IP: ");
+  tft.println(IP);
   
   server.begin();
   dht.begin();
   
-  timeSinceLastRead = 0;
+  timeSinceLastRead = millis();
 }
 
 
@@ -71,34 +121,40 @@ void loop()
 {
   timer = millis();
   
-  if (timer - timeSinceLastRead > 20000) {
-  //Spannung messen
-  Sensorwert = analogRead(Sensor);
-  Spannung = Sensorwert * 0.00432840948 ;
-  Serial.println("INPUT V= " + String(Spannung, 1) );
-  Serial.println("Value= "   + String(Sensorwert) );
- 
-  //*******************************************************************************
-
-
-     h = dht.readHumidity();    // Lesen der Luftfeuchtigkeit und speichern in die Variable h
-     t = dht.readTemperature(); // Lesen der Temperatur in °C und speichern in die Variable t
-    if (isnan(h) || isnan(t)) {
-      Serial.println("Fehler beim auslesen des Sensors!");
-      h=0;
-      t=0;
-    }
-    Serial.print("Luftfeuchtigkeit: ");
-    Serial.print(h,2);                  // Ausgeben der Luftfeuchtigkeit
-    Serial.print(" %\t");              // Tabulator
-    Serial.print("Temperatur: ");
-    Serial.print(t,2);                  // Ausgeben der Temperatur
-    Serial.write(' °');                // Schreiben des ° Zeichen
-    Serial.println("C");
-
-    //**************************************************************************
+  if (timer - timeSinceLastRead > 5000) 
+  {
+    //Spannung messen
+    float vout = (analogRead(Sensor) * MAX_VIN) / 4096.0f;
+    Spannung = vout / (R2/(R1+R2)); 
+    Serial.println("INPUT V= " + String(Spannung, 1) );
+    Serial.println("Value= "   + String(Sensorwert) );
     
-    timeSinceLastRead = millis();
+    //*******************************************************************************
+  
+       h = dht.readHumidity();    // Lesen der Luftfeuchtigkeit und speichern in die Variable h
+       t = dht.readTemperature(); // Lesen der Temperatur in °C und speichern in die Variable t
+      if (isnan(h) || isnan(t)) 
+      {
+        Serial.println("Fehler beim auslesen des Sensors!");
+        h=0;
+        t=0;
+       }
+      Serial.print("Luftfeuchtigkeit: ");
+      Serial.print(h,2);                  // Ausgeben der Luftfeuchtigkeit
+      Serial.print(" %\t");              // Tabulator
+      Serial.print("Temperatur: ");
+      Serial.print(t,2);                  // Ausgeben der Temperatur
+      Serial.write(' °');                // Schreiben des ° Zeichen
+      Serial.println("C");
+      //***************************************************************
+      tft.fillScreen(TFT_BLACK);
+      tft.drawString("Spannung:  " + String(Spannung, 1) + " V",0 , 50 );
+      tft.drawString("Humidity:  " + String(h,2) + " %" , 0 , 70 );
+      tft.drawString("Temp:      " + String(t,2) + " C" , 0 , 90 );
+  
+      //**************************************************************************
+      
+      timeSinceLastRead = millis();
   }
   
   WiFiClient client = server.available();   // Listen for incoming clients
